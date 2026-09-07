@@ -34,6 +34,8 @@ docker volume create sub2api-redis-data
 docker run -d --name sub2api-redis --restart unless-stopped --network sub2api-net -p 6379:6379 --env-file .env -v sub2api-redis-data:/data redis:8-alpine sh -c 'exec redis-server --appendonly yes --requirepass "$REDIS_PASSWORD"'
 ```
 
+`--requirepass` 只给 Redis 内置的 default 用户设置密码，不会创建新用户，所以 `.env` 里的 `REDIS_USERNAME` 必须留空。
+
 ## 5. 构建并启动 Sub2API
 
 ```powershell
@@ -41,7 +43,7 @@ docker compose --env-file .env -f docker-compose.standalone.yml config --quiet
 docker compose --env-file .env -f docker-compose.standalone.yml up -d --build
 ```
 
-访问：`http://127.0.0.1:8080`
+访问：`http://127.0.0.1`（宿主机端口由 `.env` 的 `SERVER_PORT` 决定，容器内固定跑 8080）
 
 ## 常用命令
 

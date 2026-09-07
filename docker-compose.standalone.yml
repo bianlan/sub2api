@@ -17,7 +17,8 @@ services:
         soft: 100000
         hard: 100000
     ports:
-      - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
+      # 宿主机端口取 .env 的 SERVER_PORT，容器端口固定 8080，必须与下面 environment 的 SERVER_PORT 一致。
+      - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-80}:8080"
     volumes:
       - sub2api_data:/app/data
     # 加入外部网络，与 PostgreSQL、Redis 容器直接通过容器名通信。
@@ -28,6 +29,7 @@ services:
     environment:
       - AUTO_SETUP=true
       - SERVER_HOST=0.0.0.0
+      # 容器内程序监听端口，必须与 ports 的容器端口、healthcheck 端口三者一致。
       - SERVER_PORT=8080
       - SERVER_MODE=${SERVER_MODE:-release}
       - RUN_MODE=${RUN_MODE:-standard}
