@@ -662,6 +662,19 @@ func (a *Account) resolveModelMapping(rawMapping map[string]any) map[string]stri
 				"gemini-3.6-flash-low",
 				"gemini-3.6-flash-medium",
 				"gemini-3.6-flash-tiered",
+				// Gemini 3.7 / 3.8 Flash 基础版+档位变体（新模型需注入已有账号）
+				"gemini-3.7-flash",
+				"gemini-3.7-flash-high",
+				"gemini-3.7-flash-low",
+				"gemini-3.7-flash-medium",
+				"gemini-3.7-flash-tiered",
+				"gemini-3.8-flash",
+				"gemini-3.8-flash-high",
+				"gemini-3.8-flash-low",
+				"gemini-3.8-flash-medium",
+				"gemini-3.8-flash-tiered",
+				// claude-sonnet-4-6-thinking（新模型需注入已有账号）
+				"claude-sonnet-4-6-thinking",
 			})
 			applyAntigravityGemini31ProAliases(result)
 		}

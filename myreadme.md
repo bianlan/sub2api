@@ -41,6 +41,9 @@ docker run -d --name sub2api-redis --restart unless-stopped --network sub2api-ne
 ```powershell
 docker compose --env-file .env -f docker-compose.standalone.yml config --quiet
 docker compose --env-file .env -f docker-compose.standalone.yml up -d --build
+
+docker compose --env-file .env -f docker-compose.standalone.yml up -d
+docker compose --env-file .env -f docker-compose.standalone.yml logs -f sub2api
 ```
 
 访问：`http://127.0.0.1`（宿主机端口由 `.env` 的 `SERVER_PORT` 决定，容器内固定跑 8080）
