@@ -41,6 +41,8 @@ docker run -d --name sub2api-redis --restart unless-stopped --network sub2api-ne
 ```powershell
 docker compose --env-file .env -f docker-compose.standalone.yml config --quiet
 docker compose --env-file .env -f docker-compose.standalone.yml up -d --build
+# 删除容器
+docker compose --env-file .env -f docker-compose.standalone.yml down
 
 docker compose --env-file .env -f docker-compose.standalone.yml up -d
 docker compose --env-file .env -f docker-compose.standalone.yml logs -f sub2api
