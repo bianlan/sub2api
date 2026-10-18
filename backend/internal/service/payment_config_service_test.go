@@ -551,6 +551,42 @@ func TestUpdatePaymentConfig_PersistsExplicitEmptyAndFalseValues(t *testing.T) {
 	}
 }
 
+func TestNormalizePaymentPageURL(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name    string
+		input   string
+		want    string
+		wantErr bool
+	}{
+		{name: "empty", input: "  ", want: ""},
+		{name: "https", input: " https://wzyp.cn/shop/EBOAT51U ", want: "https://wzyp.cn/shop/EBOAT51U"},
+		{name: "http rejected", input: "http://wzyp.cn/shop/EBOAT51U", wantErr: true},
+		{name: "javascript rejected", input: "javascript:alert(1)", wantErr: true},
+		{name: "missing host", input: "https:///shop", wantErr: true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+			got, err := normalizePaymentPageURL(tt.input)
+			if tt.wantErr {
+				if err == nil {
+					t.Fatalf("normalizePaymentPageURL(%q) error = nil, want error", tt.input)
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("normalizePaymentPageURL(%q) error = %v", tt.input, err)
+			}
+			if got != tt.want {
+				t.Fatalf("normalizePaymentPageURL(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
+
 func paymentConfigStrPtr(value string) *string {
 	return &value
 }

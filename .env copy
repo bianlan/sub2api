@@ -1,0 +1,43 @@
+# Sub2API 本地独立部署配置
+# 使用前请修改数据库密码、Redis 密码、管理员密码和密钥。
+
+# 程序
+BIND_HOST=0.0.0.0
+# 宿主机对外端口。容器内固定跑 8080，所以这里填宿主机端口。
+SERVER_PORT=80
+SERVER_MODE=release
+RUN_MODE=standard
+TZ=Asia/Shanghai
+
+# PostgreSQL 容器初始化配置
+POSTGRES_USER=qingyi-api
+POSTGRES_PASSWORD=Bianlan1989!
+POSTGRES_DB=sub2api
+
+# Sub2API 连接 PostgreSQL（通过容器名通信，不走宿主机端口）
+DATABASE_HOST=sub2api-postgres
+DATABASE_PORT=5432
+DATABASE_USER=qingyi-api
+DATABASE_PASSWORD=Bianlan1989!
+DATABASE_DBNAME=sub2api
+DATABASE_SSLMODE=disable
+DATABASE_MAX_OPEN_CONNS=80
+DATABASE_MAX_IDLE_CONNS=10
+
+# Redis 容器和 Sub2API 连接配置（通过容器名通信，不走宿主机端口）
+# 注意：Redis 用 --requirepass 只给内置的 default 用户设置密码，不会创建新用户。
+# 所以 REDIS_USERNAME 必须留空，填了名字会走 ACL 用户认证并报 WRONGPASS。
+REDIS_HOST=sub2api-redis
+REDIS_PORT=6379
+REDIS_USERNAME=
+REDIS_PASSWORD=Bianlan1989!
+REDIS_DB=0
+REDIS_ENABLE_TLS=false
+
+# 管理员账号
+ADMIN_EMAIL=admin@sub2api.local
+ADMIN_PASSWORD=Bianlan1989!
+
+# 请设置固定密钥，避免重启后登录状态或双因素认证失效
+JWT_SECRET=1c745ab537c779eec4788d133a5d914454e6bcf0375a34fbc575768ae126ce44
+TOTP_ENCRYPTION_KEY=4f5979f91c782636613e7c55b5f52cf3e0e3336bf6affd730603980a6c6e9b10

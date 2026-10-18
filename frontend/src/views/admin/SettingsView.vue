@@ -7759,6 +7759,21 @@
                 </div>
                 <Toggle v-model="form.payment_enabled" />
               </div>
+              <!-- 店铺链接不依赖「启用支付」，关掉支付宝/微信也能保存 -->
+              <div>
+                <label class="input-label">{{
+                  t("admin.settings.payment.pageUrl")
+                }}</label>
+                <input
+                  v-model="form.payment_page_url"
+                  type="url"
+                  class="input"
+                  :placeholder="t('admin.settings.payment.pageUrlPlaceholder')"
+                />
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                  {{ t("admin.settings.payment.pageUrlHint") }}
+                </p>
+              </div>
               <template v-if="form.payment_enabled">
                 <!-- Row 1: Product name -->
                 <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -9584,6 +9599,7 @@ const form = reactive<SettingsForm>({
   payment_enabled_types: [],
   payment_help_image_url: "",
   payment_help_text: "",
+  payment_page_url: "",
   payment_product_name_prefix: "",
   payment_product_name_suffix: "",
   payment_load_balance_strategy: "round-robin",
@@ -11003,9 +11019,25 @@ function findDuplicateDefaultSubscription(
   });
 }
 
+// 支付页面只接受 https，空字符串表示兑换页不展示店铺。
+function isHttpsPaymentPageUrl(raw: string): boolean {
+  try {
+    const parsed = new URL(raw);
+    return parsed.protocol === "https:" && parsed.hostname !== "" && !parsed.username && !parsed.password;
+  } catch {
+    return false;
+  }
+}
+
 async function saveSettings() {
   saving.value = true;
   try {
+    const paymentPageUrl = form.payment_page_url.trim();
+    if (paymentPageUrl && !isHttpsPaymentPageUrl(paymentPageUrl)) {
+      appStore.showError(t("admin.settings.payment.pageUrlInvalid"));
+      return;
+    }
+    form.payment_page_url = paymentPageUrl;
     const normalizedTableDefaultPageSize = Math.floor(
       Number(form.table_default_page_size),
     );
@@ -11396,6 +11428,7 @@ async function saveSettings() {
       payment_product_name_suffix: form.payment_product_name_suffix,
       payment_help_image_url: form.payment_help_image_url,
       payment_help_text: form.payment_help_text,
+      payment_page_url: form.payment_page_url.trim(),
       payment_cancel_rate_limit_enabled: form.payment_cancel_rate_limit_enabled,
       payment_cancel_rate_limit_max:
         Number(form.payment_cancel_rate_limit_max) || 10,

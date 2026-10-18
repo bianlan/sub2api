@@ -745,7 +745,13 @@ export default {
     codeRedeemSuccess: 'Code redeemed successfully!',
     failedToRedeem: 'Failed to redeem code. Please check the code and try again.',
     subscriptionRefreshFailed: 'Redeemed successfully, but failed to refresh subscription status.',
-    pleaseEnterCode: 'Please enter a redeem code'
+    pleaseEnterCode: 'Please enter a redeem code',
+    shopTitle: 'Top Up',
+    openInNewWindow: 'Open in new window',
+    shopStep1: 'Choose a product in the shop below and complete payment.',
+    shopStep2: 'After payment, copy the card secret from the shop.',
+    shopStep3: 'Paste the card secret into the redeem box above. The balance added is the code amount in USD, not the shop price.',
+    shopRate: '1 CNY = 1 USD'
   },
 
   // Profile

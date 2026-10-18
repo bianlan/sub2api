@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -33,6 +34,8 @@ const (
 	SettingProductNameSuffix             = "PRODUCT_NAME_SUFFIX"
 	SettingHelpImageURL                  = "PAYMENT_HELP_IMAGE_URL"
 	SettingHelpText                      = "PAYMENT_HELP_TEXT"
+	// SettingPaymentPageURL 是兑换页嵌入的店铺链接。空字符串表示不展示店铺。
+	SettingPaymentPageURL                = "PAYMENT_PAGE_URL"
 	SettingCancelRateLimitOn             = "CANCEL_RATE_LIMIT_ENABLED"
 	SettingCancelRateLimitMax            = "CANCEL_RATE_LIMIT_MAX"
 	SettingCancelWindowSize              = "CANCEL_RATE_LIMIT_WINDOW"
@@ -67,6 +70,8 @@ type PaymentConfig struct {
 	ProductNameSuffix        string  `json:"product_name_suffix"`
 	HelpImageURL             string  `json:"help_image_url"`
 	HelpText                 string  `json:"help_text"`
+	// PageURL 是兑换页下方嵌入的 https 店铺链接，空字符串表示不展示。
+	PageURL string `json:"page_url,omitempty"`
 	StripePublishableKey     string  `json:"stripe_publishable_key,omitempty"`
 
 	// Cancel rate limit settings
@@ -100,6 +105,7 @@ type UpdatePaymentConfigRequest struct {
 	ProductNameSuffix         *string  `json:"product_name_suffix"`
 	HelpImageURL              *string  `json:"help_image_url"`
 	HelpText                  *string  `json:"help_text"`
+	PageURL                   *string  `json:"page_url"`
 
 	// Cancel rate limit settings
 	CancelRateLimitEnabled *bool   `json:"cancel_rate_limit_enabled"`
@@ -221,7 +227,7 @@ func (s *PaymentConfigService) GetPaymentConfig(ctx context.Context) (*PaymentCo
 		SettingDailyRechargeLimit, SettingOrderTimeoutMinutes, SettingMaxPendingOrders,
 		SettingEnabledPaymentTypes, SettingBalancePayDisabled, SettingBalanceRechargeMult, SettingSubscriptionUSDToCNYRate, SettingRechargeFeeRate, SettingLoadBalanceStrategy,
 		SettingProductNamePrefix, SettingProductNameSuffix,
-		SettingHelpImageURL, SettingHelpText,
+		SettingHelpImageURL, SettingHelpText, SettingPaymentPageURL,
 		SettingCancelRateLimitOn, SettingCancelRateLimitMax,
 		SettingCancelWindowSize, SettingCancelWindowUnit, SettingCancelWindowMode,
 		SettingAlipayForceQRCode, SettingAlipayMobilePrecreateDeepLink,
@@ -255,6 +261,7 @@ func (s *PaymentConfigService) parsePaymentConfig(vals map[string]string) *Payme
 		ProductNameSuffix:         vals[SettingProductNameSuffix],
 		HelpImageURL:              vals[SettingHelpImageURL],
 		HelpText:                  vals[SettingHelpText],
+		PageURL:                   strings.TrimSpace(vals[SettingPaymentPageURL]),
 
 		CancelRateLimitEnabled: vals[SettingCancelRateLimitOn] == "true",
 		CancelRateLimitMax:     pcParseInt(vals[SettingCancelRateLimitMax], 10),
@@ -343,6 +350,14 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 			return infraerrors.BadRequest("INVALID_RECHARGE_FEE_RATE", "recharge fee rate allows at most 2 decimal places")
 		}
 	}
+	// 店铺链接在写入前校验，避免兑换页嵌入非 https 地址。
+	if req.PageURL != nil {
+		normalized, err := normalizePaymentPageURL(*req.PageURL)
+		if err != nil {
+			return err
+		}
+		req.PageURL = &normalized
+	}
 	m := make(map[string]string)
 	if req.Enabled != nil {
 		m[SettingPaymentEnabled] = formatBoolOrEmpty(req.Enabled)
@@ -391,6 +406,9 @@ func (s *PaymentConfigService) UpdatePaymentConfig(ctx context.Context, req Upda
 	}
 	if req.HelpText != nil {
 		m[SettingHelpText] = derefStr(req.HelpText)
+	}
+	if req.PageURL != nil {
+		m[SettingPaymentPageURL] = derefStr(req.PageURL)
 	}
 	if req.CancelRateLimitEnabled != nil {
 		m[SettingCancelRateLimitOn] = formatBoolOrEmpty(req.CancelRateLimitEnabled)
@@ -462,6 +480,29 @@ func formatPositiveInt(v *int) string {
 		return ""
 	}
 	return strconv.Itoa(*v)
+}
+
+// normalizePaymentPageURL 校验兑换页店铺链接。
+// 空字符串表示不展示店铺；非空时只接受带主机名的 https 链接。
+func normalizePaymentPageURL(raw string) (string, error) {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return "", nil
+	}
+	parsed, err := url.Parse(trimmed)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
+		return "", infraerrors.BadRequest("INVALID_PAYMENT_PAGE_URL", "支付页面链接只接受 https 链接")
+	}
+	return trimmed, nil
+}
+
+// publicPaymentPageURL 只把合法 https 链接交给兑换页。库里的非法值按未配置处理。
+func publicPaymentPageURL(raw string) string {
+	normalized, err := normalizePaymentPageURL(raw)
+	if err != nil {
+		return ""
+	}
+	return normalized
 }
 
 func derefStr(v *string) string {

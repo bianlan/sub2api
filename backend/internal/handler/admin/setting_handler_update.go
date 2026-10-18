@@ -315,6 +315,7 @@ type UpdateSettingsRequest struct {
 	PaymentProductNameSuffix         *string  `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              *string  `json:"payment_help_image_url"`
 	PaymentHelpText                  *string  `json:"payment_help_text"`
+	PaymentPageURL                   *string  `json:"payment_page_url"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled *bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -2077,6 +2078,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 			ProductNameSuffix:             req.PaymentProductNameSuffix,
 			HelpImageURL:                  req.PaymentHelpImageURL,
 			HelpText:                      req.PaymentHelpText,
+			PageURL:                       req.PaymentPageURL,
 			CancelRateLimitEnabled:        req.PaymentCancelRateLimitEnabled,
 			CancelRateLimitMax:            req.PaymentCancelRateLimitMax,
 			CancelRateLimitWindow:         req.PaymentCancelRateLimitWindow,
@@ -2353,6 +2355,7 @@ func (h *SettingHandler) UpdateSettings(c *gin.Context) {
 		PaymentProductNameSuffix:                               updatedPaymentCfg.ProductNameSuffix,
 		PaymentHelpImageURL:                                    updatedPaymentCfg.HelpImageURL,
 		PaymentHelpText:                                        updatedPaymentCfg.HelpText,
+		PaymentPageURL:                                         updatedPaymentCfg.PageURL,
 		PaymentCancelRateLimitEnabled:                          updatedPaymentCfg.CancelRateLimitEnabled,
 		PaymentCancelRateLimitMax:                              updatedPaymentCfg.CancelRateLimitMax,
 		PaymentCancelRateLimitWindow:                           updatedPaymentCfg.CancelRateLimitWindow,
@@ -2422,8 +2425,9 @@ func hasPaymentFields(req UpdateSettingsRequest) bool {
 		req.PaymentBalanceRechargeMultiplier != nil || req.PaymentSubscriptionUSDToCNYRate != nil ||
 		req.PaymentRechargeFeeRate != nil ||
 		req.PaymentLoadBalanceStrat != nil || req.PaymentProductNamePrefix != nil ||
-		req.PaymentProductNameSuffix != nil || req.PaymentHelpImageURL != nil ||
-		req.PaymentHelpText != nil || req.PaymentCancelRateLimitEnabled != nil ||
+		req.PaymentProductNameSuffix != nil || 		req.PaymentHelpImageURL != nil ||
+		req.PaymentHelpText != nil || req.PaymentPageURL != nil ||
+		req.PaymentCancelRateLimitEnabled != nil ||
 		req.PaymentCancelRateLimitMax != nil || req.PaymentCancelRateLimitWindow != nil ||
 		req.PaymentCancelRateLimitUnit != nil || req.PaymentCancelRateLimitMode != nil ||
 		req.PaymentAlipayForceQRCode != nil || req.PaymentAlipayMobilePrecreateDeepLink != nil

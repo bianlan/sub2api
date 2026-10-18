@@ -78,12 +78,12 @@ docker stop sub2api-postgres sub2api-redis
 | PostgreSQL（pgvector 镜像） | `pgvector` | 127.0.0.1:54333 | 用户 `pgvector`，密码 `bianlan1989`，库名 `sub2api` |
 | Redis | `redis` | 127.0.0.1:6379 | 无密码 |
 
-后端配置文件是 `backend/config.yaml`（本地文件，已被 .gitignore 忽略），数据库和 Redis 连接信息已配置完成。数据库 `sub2api` 已完成建库、数据表迁移和管理员账号初始化（`admin@sub2api.local`），后端每次启动会自动执行增量迁移，无需手动操作。
+没有 `backend/config.yaml` 时，后端启动会读取项目根目录 `.env` 里的数据库和 Redis。`.env` 的 `SERVER_PORT` 只用于 Docker 宿主机端口映射，本地 `go run` 仍监听 8080。数据库已完成初始化，后端每次启动会自动执行增量迁移，无需手动操作。
 
 ### 前后端启动命令
 
 ```powershell
-# 后端：监听 0.0.0.0:8080，读取 backend/config.yaml
+# 后端：监听 0.0.0.0:8080，没有 config.yaml 时读取项目根目录 .env
 cd backend
 go run ./cmd/server/
 
@@ -101,4 +101,4 @@ pnpm dev
 - 前端依赖必须用 pnpm 安装（`cd frontend; pnpm install`），不要用 npm
 - Go 模块代理已全局配置为国内镜像：`go env -w GOPROXY=https://goproxy.cn,direct`
 - 后端日志出现 `Server started on 0.0.0.0:8080` 即启动成功
-- 两个依赖容器需要保持运行：`docker start pgvector redis`（未启动时）
+- 数据库和 Redis 使用项目根目录 `.env` 中的地址，不需要再准备 `backend/config.yaml`

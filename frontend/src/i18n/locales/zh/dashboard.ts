@@ -749,7 +749,13 @@ export default {
     codeRedeemSuccess: '兑换成功！',
     failedToRedeem: '兑换失败，请检查兑换码后重试。',
     subscriptionRefreshFailed: '兑换成功，但订阅状态刷新失败。',
-    pleaseEnterCode: '请输入兑换码'
+    pleaseEnterCode: '请输入兑换码',
+    shopTitle: '在线充值',
+    openInNewWindow: '新窗口打开',
+    shopStep1: '在下方店铺选择商品并完成支付。',
+    shopStep2: '支付成功后复制店铺给出的卡密。',
+    shopStep3: '把卡密粘贴到上方兑换框并兑换。到账金额是这张兑换码的面额（美元），不是店铺标价。',
+    shopRate: '1 人民币 = 1 美元'
   },
 
   // Profile

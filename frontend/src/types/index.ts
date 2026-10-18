@@ -241,6 +241,8 @@ export interface PublicSettings {
   compact_home_enabled: boolean
   hide_ccs_import_button: boolean
   payment_enabled: boolean
+  // 兑换页嵌入的店铺链接。空字符串表示不展示充值区
+  payment_page_url?: string
   risk_control_enabled: boolean
   table_default_page_size: number
   table_page_size_options: number[]

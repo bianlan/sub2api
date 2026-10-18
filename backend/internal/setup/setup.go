@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -175,7 +176,77 @@ func NeedsSetup() bool {
 		return false // Lock file exists, already installed
 	}
 
+	// 本地开发用根目录 .env 提供数据库和 JWT 时，直接启动主服务。
+	// Docker 首次安装会打开 AUTO_SETUP，这里不能跳过，否则不会创建管理员。
+	if !AutoSetupEnabled() &&
+		strings.TrimSpace(os.Getenv("DATABASE_HOST")) != "" &&
+		strings.TrimSpace(os.Getenv("JWT_SECRET")) != "" {
+		logger.L().Debug("setup.needs_setup_bypassed", zap.String("reason", "env_config_present"))
+		return false
+	}
+
 	return true
+}
+
+// LoadProjectEnv 在没有 config.yaml 时，把项目根目录 .env 加载到当前进程。
+// 已经存在的环境变量不覆盖。SERVER_PORT 只给 Docker 做宿主机端口映射，本地进程继续用默认 8080。
+func LoadProjectEnv() {
+	if _, err := os.Stat(GetConfigFilePath()); err == nil {
+		return
+	}
+	envPath := findProjectEnvFile()
+	if envPath == "" {
+		return
+	}
+	data, err := os.ReadFile(envPath)
+	if err != nil {
+		logger.LegacyPrintf("setup", "read .env failed: %v", err)
+		return
+	}
+	applyEnvFile(string(data))
+}
+
+// findProjectEnvFile 从当前目录向上查找 .env，方便在 backend 目录里执行 go run。
+func findProjectEnvFile() string {
+	dir, err := os.Getwd()
+	if err != nil {
+		return ""
+	}
+	for {
+		candidate := filepath.Join(dir, ".env")
+		info, statErr := os.Stat(candidate)
+		if statErr == nil && !info.IsDir() {
+			return candidate
+		}
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			return ""
+		}
+		dir = parent
+	}
+}
+
+// applyEnvFile 解析 KEY=VALUE。空行和 # 注释跳过。
+func applyEnvFile(content string) {
+	content = strings.TrimPrefix(content, "\uFEFF")
+	for _, line := range strings.Split(content, "\n") {
+		line = strings.TrimSpace(strings.TrimRight(line, "\r"))
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+		key = strings.TrimSpace(key)
+		if key == "" || key == "SERVER_PORT" {
+			continue
+		}
+		if _, exists := os.LookupEnv(key); exists {
+			continue
+		}
+		_ = os.Setenv(key, strings.TrimSpace(value))
+	}
 }
 
 func buildPostgresDSN(cfg *DatabaseConfig, dbName string) string {

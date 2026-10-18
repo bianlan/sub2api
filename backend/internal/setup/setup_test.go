@@ -140,6 +140,10 @@ func TestNeedsSetupFallsBackToFileDetectionWhenSkipSetupIsDisabled(t *testing.T)
 		t.Run(tc.name, func(t *testing.T) {
 			dataDir := t.TempDir()
 			t.Setenv("DATA_DIR", dataDir)
+			// 避免本机 .env 或环境变量让“需要安装”的用例被跳过。
+			t.Setenv("DATABASE_HOST", "")
+			t.Setenv("JWT_SECRET", "")
+			t.Setenv("AUTO_SETUP", "")
 			if tc.skipSetupSet {
 				t.Setenv("SKIP_SETUP", tc.skipSetup)
 			} else {
@@ -247,4 +251,99 @@ func TestBuildDatabaseConnectionDSNsUsesPostgresForBootstrap(t *testing.T) {
 	if !strings.Contains(targetDSN, "dbname=sub2api") {
 		t.Fatalf("target DSN = %q, want configured database", targetDSN)
 	}
+}
+
+func TestNeedsSetupSkipsWhenEnvConfigPresent(t *testing.T) {
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "")
+	t.Setenv("AUTO_SETUP", "")
+	t.Setenv("DATABASE_HOST", "10.0.0.8")
+	t.Setenv("JWT_SECRET", "secret")
+
+	if NeedsSetup() {
+		t.Fatal("NeedsSetup() = true, want false when database and jwt are in env")
+	}
+}
+
+func TestNeedsSetupStillRequiredForAutoSetup(t *testing.T) {
+	t.Setenv("DATA_DIR", t.TempDir())
+	t.Setenv("SKIP_SETUP", "")
+	t.Setenv("AUTO_SETUP", "true")
+	t.Setenv("DATABASE_HOST", "10.0.0.8")
+	t.Setenv("JWT_SECRET", "secret")
+
+	if !NeedsSetup() {
+		t.Fatal("NeedsSetup() = false, want true when AUTO_SETUP is enabled")
+	}
+}
+
+func TestLoadProjectEnvReadsParentEnv(t *testing.T) {
+	root := t.TempDir()
+	backendDir := filepath.Join(root, "backend")
+	if err := os.Mkdir(backendDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	content := "DATABASE_HOST=10.0.0.8\r\nSERVER_PORT=80\r\nJWT_SECRET=from-file\r\n# comment\r\nREDIS_PASSWORD=secret\r\n"
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Chdir(backendDir)
+	t.Setenv("DATA_DIR", t.TempDir())
+	unsetEnvForTest(t, "DATABASE_HOST")
+	unsetEnvForTest(t, "SERVER_PORT")
+	unsetEnvForTest(t, "REDIS_PASSWORD")
+	t.Setenv("JWT_SECRET", "already-set")
+
+	LoadProjectEnv()
+
+	if got := os.Getenv("DATABASE_HOST"); got != "10.0.0.8" {
+		t.Fatalf("DATABASE_HOST=%q, want 10.0.0.8", got)
+	}
+	if got := os.Getenv("JWT_SECRET"); got != "already-set" {
+		t.Fatalf("JWT_SECRET=%q, want existing value", got)
+	}
+	if got := os.Getenv("REDIS_PASSWORD"); got != "secret" {
+		t.Fatalf("REDIS_PASSWORD=%q, want secret", got)
+	}
+	if _, exists := os.LookupEnv("SERVER_PORT"); exists {
+		t.Fatalf("SERVER_PORT=%q, .env host port must not be loaded", os.Getenv("SERVER_PORT"))
+	}
+}
+
+func TestLoadProjectEnvSkipsWhenConfigExists(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, ".env"), []byte("DATABASE_HOST=10.0.0.8\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	dataDir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dataDir, ConfigFileName), []byte("server:\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Chdir(root)
+	t.Setenv("DATA_DIR", dataDir)
+	unsetEnvForTest(t, "DATABASE_HOST")
+
+	LoadProjectEnv()
+
+	if _, exists := os.LookupEnv("DATABASE_HOST"); exists {
+		t.Fatalf("DATABASE_HOST=%q, config.yaml should skip .env", os.Getenv("DATABASE_HOST"))
+	}
+}
+
+// unsetEnvForTest 临时删除环境变量，测试结束再恢复。
+func unsetEnvForTest(t *testing.T, key string) {
+	t.Helper()
+	original, wasSet := os.LookupEnv(key)
+	if err := os.Unsetenv(key); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if wasSet {
+			_ = os.Setenv(key, original)
+			return
+		}
+		_ = os.Unsetenv(key)
+	})
 }

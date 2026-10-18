@@ -280,6 +280,7 @@ type SystemSettings struct {
 	PaymentProductNameSuffix         string   `json:"payment_product_name_suffix"`
 	PaymentHelpImageURL              string   `json:"payment_help_image_url"`
 	PaymentHelpText                  string   `json:"payment_help_text"`
+	PaymentPageURL                   string   `json:"payment_page_url"`
 
 	// Cancel rate limit
 	PaymentCancelRateLimitEnabled bool   `json:"payment_cancel_rate_limit_enabled"`
@@ -402,6 +403,7 @@ type PublicSettings struct {
 	GoogleOAuthEnabled                  bool                     `json:"google_oauth_enabled"`
 	BackendModeEnabled                  bool                     `json:"backend_mode_enabled"`
 	PaymentEnabled                      bool                     `json:"payment_enabled"`
+	PaymentPageURL                      string                   `json:"payment_page_url"`
 	Version                             string                   `json:"version"`
 	// 服务器全局时区（IANA 名称与当前 UTC 偏移，如 "Asia/Shanghai" / "+08:00"）。
 	// 高峰时段等按服务器本地时间判定的窗口，前端展示时据此标注，避免用户按浏览器本地时间误读。

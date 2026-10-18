@@ -74,6 +74,9 @@ func main() {
 		return
 	}
 
+	// 没有 config.yaml 时读取项目根目录 .env，本地开发直接连远程库，不进安装向导。
+	setup.LoadProjectEnv()
+
 	// Check if setup is needed
 	if setup.NeedsSetup() {
 		// Check if auto-setup is enabled (for Docker deployment)

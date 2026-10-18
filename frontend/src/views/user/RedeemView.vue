@@ -1,9 +1,10 @@
 <template>
   <AppLayout>
-    <div class="mx-auto max-w-2xl space-y-6">
-      <!-- Current Balance Card -->
-      <div class="card overflow-hidden">
-        <div class="bg-gradient-to-br from-primary-500 to-primary-600 px-6 py-8 text-center">
+    <div class="w-full space-y-6">
+      <!-- 上半：宽屏左右并排，窄屏上下堆叠 -->
+      <div class="grid grid-cols-1 items-stretch gap-6 lg:grid-cols-2">
+      <div class="card h-full overflow-hidden">
+        <div class="flex h-full flex-col justify-center bg-gradient-to-br from-primary-500 to-primary-600 px-6 py-8 text-center">
           <div
             class="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-white/20 backdrop-blur-sm"
           >
@@ -19,6 +20,7 @@
         </div>
       </div>
 
+      <div class="space-y-6">
       <!-- Redeem Form -->
       <div class="card">
         <div class="p-6">
@@ -161,6 +163,8 @@
           </div>
         </div>
       </transition>
+      </div>
+      </div>
 
       <!-- Information Card -->
       <div
@@ -198,145 +202,39 @@
         </div>
       </div>
 
-      <!-- Recent Activity -->
-      <div class="card">
-        <div class="border-b border-gray-100 px-6 py-4 dark:border-dark-700">
+      <!-- 下半：充值说明和店铺。链接为空时不渲染 -->
+      <section v-if="paymentPageUrl" class="card overflow-hidden">
+        <div class="flex flex-col gap-3 border-b border-gray-100 px-6 py-4 dark:border-dark-700 sm:flex-row sm:items-center sm:justify-between">
           <h2 class="text-lg font-semibold text-gray-900 dark:text-white">
-            {{ t('redeem.recentActivity') }}
+            {{ t('redeem.shopTitle') }}
           </h2>
+          <a
+            :href="paymentPageUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-secondary inline-flex w-full items-center justify-center sm:w-auto"
+          >
+            {{ t('redeem.openInNewWindow') }}
+          </a>
         </div>
-        <div class="p-6">
-          <!-- Loading State -->
-          <div v-if="loadingHistory" class="flex items-center justify-center py-8">
-            <svg class="h-6 w-6 animate-spin text-primary-500" fill="none" viewBox="0 0 24 24">
-              <circle
-                class="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                stroke-width="4"
-              ></circle>
-              <path
-                class="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              ></path>
-            </svg>
-          </div>
-
-          <!-- History List -->
-          <div v-else-if="history.length > 0" class="space-y-3">
-            <div
-              v-for="item in history"
-              :key="item.id"
-              class="flex items-center justify-between rounded-xl bg-gray-50 p-4 dark:bg-dark-800"
-            >
-              <div class="flex items-center gap-4">
-                <div
-                  :class="[
-                    'flex h-10 w-10 items-center justify-center rounded-xl',
-                    isBalanceType(item.type)
-                      ? item.value >= 0
-                        ? 'bg-emerald-100 dark:bg-emerald-900/30'
-                        : 'bg-red-100 dark:bg-red-900/30'
-                      : isSubscriptionType(item.type)
-                        ? 'bg-purple-100 dark:bg-purple-900/30'
-                        : item.value >= 0
-                          ? 'bg-blue-100 dark:bg-blue-900/30'
-                          : 'bg-orange-100 dark:bg-orange-900/30'
-                  ]"
-                >
-                  <!-- 余额类型图标 -->
-                  <Icon
-                    v-if="isBalanceType(item.type)"
-                    name="dollar"
-                    size="md"
-                    :class="
-                      item.value >= 0
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-red-600 dark:text-red-400'
-                    "
-                  />
-                  <!-- 订阅类型图标 -->
-                  <Icon
-                    v-else-if="isSubscriptionType(item.type)"
-                    name="badge"
-                    size="md"
-                    class="text-purple-600 dark:text-purple-400"
-                  />
-                  <!-- 并发类型图标 -->
-                  <Icon
-                    v-else
-                    name="bolt"
-                    size="md"
-                    :class="
-                      item.value >= 0
-                        ? 'text-blue-600 dark:text-blue-400'
-                        : 'text-orange-600 dark:text-orange-400'
-                    "
-                  />
-                </div>
-                <div>
-                  <p class="text-sm font-medium text-gray-900 dark:text-white">
-                    {{ getHistoryItemTitle(item) }}
-                  </p>
-                  <p class="text-xs text-gray-500 dark:text-dark-400">
-                    {{ formatDateTime(item.used_at) }}
-                  </p>
-                </div>
-              </div>
-              <div class="text-right">
-                <p
-                  :class="[
-                    'text-sm font-semibold',
-                    isBalanceType(item.type)
-                      ? item.value >= 0
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-red-600 dark:text-red-400'
-                      : isSubscriptionType(item.type)
-                        ? 'text-purple-600 dark:text-purple-400'
-                        : item.value >= 0
-                          ? 'text-blue-600 dark:text-blue-400'
-                          : 'text-orange-600 dark:text-orange-400'
-                  ]"
-                >
-                  {{ formatHistoryValue(item) }}
-                </p>
-                <p
-                  v-if="!isAdminAdjustment(item.type)"
-                  class="font-mono text-xs text-gray-400 dark:text-dark-500"
-                >
-                  {{ item.code.slice(0, 8) }}...
-                </p>
-                <p v-else class="text-xs text-gray-400 dark:text-dark-500">
-                  {{ t('redeem.adminAdjustment') }}
-                </p>
-                <!-- Display notes for admin adjustments -->
-                <p
-                  v-if="item.notes"
-                  class="mt-1 text-xs text-gray-500 dark:text-dark-400 italic max-w-[200px] truncate"
-                  :title="item.notes"
-                >
-                  {{ item.notes }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Empty State -->
-          <div v-else class="empty-state py-8">
-            <div
-              class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-800"
-            >
-              <Icon name="clock" size="xl" class="text-gray-400 dark:text-dark-500" />
-            </div>
-            <p class="text-sm text-gray-500 dark:text-dark-400">
-              {{ t('redeem.historyWillAppear') }}
-            </p>
-          </div>
+        <div class="space-y-4 p-6">
+          <ol class="list-decimal space-y-1 pl-5 text-sm text-gray-600 dark:text-gray-300">
+            <li>{{ t('redeem.shopStep1') }}</li>
+            <li>{{ t('redeem.shopStep2') }}</li>
+            <li>{{ t('redeem.shopStep3') }}</li>
+          </ol>
+          <p class="text-sm font-medium text-primary-700 dark:text-primary-300">
+            {{ t('redeem.shopRate') }}
+          </p>
+          <!-- 高度按店铺内容撑开，并关掉内部滚动，避免再出现滚动条 -->
+          <iframe
+            :src="paymentPageUrl"
+            scrolling="no"
+            class="shop-frame w-full rounded-xl border border-gray-200 bg-white dark:border-dark-700"
+            :title="t('redeem.shopTitle')"
+          ></iframe>
         </div>
-      </div>
+      </section>
     </div>
   </AppLayout>
 </template>
@@ -347,10 +245,9 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useAppStore } from '@/stores/app'
 import { useSubscriptionStore } from '@/stores/subscriptions'
-import { redeemAPI, authAPI, type RedeemHistoryItem } from '@/api'
+import { redeemAPI, authAPI } from '@/api'
 import AppLayout from '@/components/layout/AppLayout.vue'
 import Icon from '@/components/icons/Icon.vue'
-import { formatDateTime } from '@/utils/format'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -372,64 +269,9 @@ const redeemResult = ref<{
 } | null>(null)
 const errorMessage = ref('')
 
-// History data
-const history = ref<RedeemHistoryItem[]>([])
-const loadingHistory = ref(false)
 const contactInfo = ref('')
-
-// Helper functions for history display
-const isBalanceType = (type: string) => {
-  return type === 'balance' || type === 'admin_balance'
-}
-
-const isSubscriptionType = (type: string) => {
-  return type === 'subscription'
-}
-
-const isAdminAdjustment = (type: string) => {
-  return type === 'admin_balance' || type === 'admin_concurrency'
-}
-
-const getHistoryItemTitle = (item: RedeemHistoryItem) => {
-  if (item.type === 'balance') {
-    return t('redeem.balanceAddedRedeem')
-  } else if (item.type === 'admin_balance') {
-    return item.value >= 0 ? t('redeem.balanceAddedAdmin') : t('redeem.balanceDeductedAdmin')
-  } else if (item.type === 'concurrency') {
-    return t('redeem.concurrencyAddedRedeem')
-  } else if (item.type === 'admin_concurrency') {
-    return item.value >= 0 ? t('redeem.concurrencyAddedAdmin') : t('redeem.concurrencyReducedAdmin')
-  } else if (item.type === 'subscription') {
-    return t('redeem.subscriptionAssigned')
-  }
-  return t('common.unknown')
-}
-
-const formatHistoryValue = (item: RedeemHistoryItem) => {
-  if (isBalanceType(item.type)) {
-    const sign = item.value >= 0 ? '+' : ''
-    return `${sign}$${item.value.toFixed(2)}`
-  } else if (isSubscriptionType(item.type)) {
-    // 订阅类型显示有效天数和分组名称
-    const days = item.validity_days || Math.round(item.value)
-    const groupName = item.group?.name || ''
-    return groupName ? `${days}${t('redeem.days')} - ${groupName}` : `${days}${t('redeem.days')}`
-  } else {
-    const sign = item.value >= 0 ? '+' : ''
-    return `${sign}${item.value} ${t('redeem.requests')}`
-  }
-}
-
-const fetchHistory = async () => {
-  loadingHistory.value = true
-  try {
-    history.value = await redeemAPI.getHistory()
-  } catch (error) {
-    console.error('Failed to fetch history:', error)
-  } finally {
-    loadingHistory.value = false
-  }
-}
+// 只接受 https 店铺链接，避免把非法地址嵌进页面
+const paymentPageUrl = ref('')
 
 const handleRedeem = async () => {
   if (!redeemCode.value.trim()) {
@@ -462,9 +304,6 @@ const handleRedeem = async () => {
     // Clear the input
     redeemCode.value = ''
 
-    // Refresh history
-    await fetchHistory()
-
     // Show success toast
     appStore.showSuccess(t('redeem.codeRedeemSuccess'))
   } catch (error: any) {
@@ -476,11 +315,24 @@ const handleRedeem = async () => {
   }
 }
 
+// 公开设置里的店铺链接。非 https 或空值都不展示充值区。
+function readPaymentPageUrl(raw: string | undefined): string {
+  const value = (raw || '').trim()
+  if (!value) return ''
+  try {
+    const parsed = new URL(value)
+    if (parsed.protocol !== 'https:' || !parsed.hostname || parsed.username || parsed.password) return ''
+    return value
+  } catch {
+    return ''
+  }
+}
+
 onMounted(async () => {
-  fetchHistory()
   try {
     const settings = await authAPI.getPublicSettings()
     contactInfo.value = settings.contact_info || ''
+    paymentPageUrl.value = readPaymentPageUrl(settings.payment_page_url)
   } catch (error) {
     console.error('Failed to load contact info:', error)
   }
@@ -488,6 +340,13 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 店铺正文大约 800px。固定到这个高度并关掉内部滚动，页面本身向下滚，iframe 里不再出滚动条 */
+.shop-frame {
+  display: block;
+  height: 900px;
+  overflow: hidden;
+}
+
 .fade-enter-active,
 .fade-leave-active {
   transition: all 0.3s ease;
