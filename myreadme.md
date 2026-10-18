@@ -68,3 +68,37 @@ docker stop sub2api-postgres sub2api-redis
 ```
 
 不要执行 `docker compose down -v` 或删除数据卷，否则会丢失数据。
+
+## 本地开发（前后端联调）
+
+开发模式下 Sub2API 不放在 Docker 里运行，直接在本地启动前后端进程；PostgreSQL 和 Redis 使用本地已有的 Docker 容器：
+
+| 服务 | 容器 | 地址 | 凭据 |
+|------|------|------|------|
+| PostgreSQL（pgvector 镜像） | `pgvector` | 127.0.0.1:54333 | 用户 `pgvector`，密码 `bianlan1989`，库名 `sub2api` |
+| Redis | `redis` | 127.0.0.1:6379 | 无密码 |
+
+后端配置文件是 `backend/config.yaml`（本地文件，已被 .gitignore 忽略），数据库和 Redis 连接信息已配置完成。数据库 `sub2api` 已完成建库、数据表迁移和管理员账号初始化（`admin@sub2api.local`），后端每次启动会自动执行增量迁移，无需手动操作。
+
+### 前后端启动命令
+
+```powershell
+# 后端：监听 0.0.0.0:8080，读取 backend/config.yaml
+cd backend
+go run ./cmd/server/
+
+# 前端：vite 开发服务器，监听 http://localhost:3000
+cd frontend
+pnpm dev
+```
+
+开发时统一从 `http://localhost:3000` 访问系统。vite 会把页面里的 `/api`、`/v1`、`/setup` 请求自动代理到后端 8080 端口，不需要额外配置。
+
+注意：`go run` 方式启动的后端不内嵌前端页面，直接访问 8080 只有 API 接口，页面必须从 3000 端口打开。
+
+### 注意事项
+
+- 前端依赖必须用 pnpm 安装（`cd frontend; pnpm install`），不要用 npm
+- Go 模块代理已全局配置为国内镜像：`go env -w GOPROXY=https://goproxy.cn,direct`
+- 后端日志出现 `Server started on 0.0.0.0:8080` 即启动成功
+- 两个依赖容器需要保持运行：`docker start pgvector redis`（未启动时）
