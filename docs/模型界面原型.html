@@ -1,0 +1,2011 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>模型广场 - 轻驿-api</title>
+  <style>
+    :root {
+      --bg: #f6f8fb;
+      --surface: #ffffff;
+      --surface-soft: #f8fafc;
+      --ink: #0f172a;
+      --ink-secondary: #334155;
+      --muted: #64748b;
+      --subtle: #94a3b8;
+      --line: #e2e8f0;
+      --line-soft: #edf2f7;
+      --primary: #0d9488;
+      --primary-light: #14b8a6;
+      --primary-bg: #f0fdfa;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+      --shadow-md: 0 10px 30px -10px rgba(15, 23, 42, 0.07), 0 4px 12px -4px rgba(15, 23, 42, 0.04);
+      --shadow-hover: 0 16px 36px -12px rgba(15, 23, 42, 0.12), 0 6px 16px -6px rgba(15, 23, 42, 0.06);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+      background:
+        radial-gradient(1000px 340px at 50% -140px, rgba(20, 184, 166, 0.10), transparent 70%),
+        var(--bg);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body.lock {
+      overflow: hidden;
+    }
+
+    button, input {
+      font: inherit;
+      color: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    /* 顶部导航栏 */
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      background: rgba(255, 255, 255, 0.88);
+      border-bottom: 1px solid rgba(226, 232, 240, 0.85);
+      backdrop-filter: blur(16px);
+    }
+
+    .topbar-inner {
+      width: min(1240px, calc(100% - 40px));
+      height: 64px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-weight: 700;
+      font-size: 16px;
+      background: linear-gradient(135deg, #14b8a6, #0f766e);
+      box-shadow: 0 6px 16px rgba(13, 148, 136, 0.24);
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--ink);
+    }
+
+    .brand-badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--primary);
+      background: var(--primary-bg);
+      border: 1px solid rgba(20, 184, 166, 0.22);
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .auth-status {
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .auth-btn {
+      border: 0;
+      border-radius: 10px;
+      padding: 8px 16px;
+      color: #fff;
+      font-size: 13.5px;
+      font-weight: 600;
+      background: linear-gradient(135deg, #14b8a6, #0d9488);
+      box-shadow: 0 6px 16px rgba(13, 148, 136, 0.22);
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    .auth-btn:hover {
+      filter: brightness(1.04);
+      transform: translateY(-1px);
+    }
+
+    /* 主容器 */
+    main {
+      width: min(1240px, calc(100% - 40px));
+      margin: 0 auto;
+      padding: 28px 0 68px;
+    }
+
+    /* 页头区域 */
+    .hero {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 18px;
+    }
+
+    .hero-left h1 {
+      margin: 0;
+      font-size: 28px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
+      color: var(--ink);
+    }
+
+    .hero-sub {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 13.5px;
+    }
+
+    .anon-banner {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      color: #b45309;
+      font-size: 12.5px;
+      font-weight: 500;
+    }
+
+    /* 顶部筛选面板（上筛选） */
+    .filter-panel {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px 20px;
+      box-shadow: var(--shadow-sm);
+      display: grid;
+      gap: 12px;
+    }
+
+    .filter-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .filter-label {
+      width: 44px;
+      flex: none;
+      padding-top: 6px;
+      color: var(--subtle);
+      font-size: 12.5px;
+      font-weight: 600;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      flex: 1;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      padding: 5px 11px;
+      background: var(--surface);
+      color: var(--ink-secondary);
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.35;
+      transition: all 0.15s ease;
+    }
+
+    .chip svg {
+      width: 14px;
+      height: 14px;
+      flex: none;
+    }
+
+    .chip .chip-rate {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 11.5px;
+      opacity: 0.78;
+    }
+
+    .chip:hover:not(:disabled) {
+      border-color: #cbd5e1;
+      background: var(--surface-soft);
+    }
+
+    .chip.active {
+      color: #fff;
+      background: linear-gradient(135deg, #14b8a6, #0d9488);
+      border-color: transparent;
+      box-shadow: 0 4px 12px rgba(13, 148, 136, 0.24);
+    }
+
+    .chip.tint {
+      color: color-mix(in srgb, var(--chip) 82%, black);
+      background: color-mix(in srgb, var(--chip) 8%, white);
+      border-color: color-mix(in srgb, var(--chip) 24%, transparent);
+    }
+
+    .chip.tint:hover:not(:disabled) {
+      background: color-mix(in srgb, var(--chip) 14%, white);
+    }
+
+    .chip.tint.active {
+      color: #fff;
+      background: color-mix(in srgb, var(--chip) 88%, black);
+      border-color: transparent;
+      box-shadow: 0 4px 12px color-mix(in srgb, var(--chip) 32%, transparent);
+    }
+
+    .chip:disabled {
+      opacity: 0.35;
+      filter: grayscale(1);
+      cursor: not-allowed;
+    }
+
+    /* 工具栏：模型数量 + 搜索框 */
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 20px 0 14px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .model-count {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .model-count span {
+      font-weight: 800;
+    }
+
+    .unit-hint {
+      font-size: 12px;
+      color: var(--subtle);
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: rgba(226, 232, 240, 0.55);
+    }
+
+    .reset-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border: 0;
+      border-radius: 8px;
+      padding: 5px 10px;
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--primary);
+      background: rgba(20, 184, 166, 0.1);
+    }
+
+    .reset-btn:hover {
+      background: rgba(20, 184, 166, 0.16);
+    }
+
+    .search-box {
+      position: relative;
+      width: min(300px, 100%);
+    }
+
+    .search-box input {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 7px 30px 7px 34px;
+      font-size: 13px;
+      background: var(--surface);
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.12);
+    }
+
+    .search-box .search-icon {
+      position: absolute;
+      left: 11px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--subtle);
+      pointer-events: none;
+    }
+
+    .search-box .clear-btn {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      color: var(--subtle);
+      background: transparent;
+      display: grid;
+      place-items: center;
+    }
+
+    .search-box .clear-btn:hover {
+      background: #f1f5f9;
+      color: var(--ink);
+    }
+
+    /* 模型卡片网格（参考 PuppyRouter 极简白底卡片） */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+
+    .model-card {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 18px 18px 15px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 158px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+
+    .model-card:hover {
+      transform: translateY(-2px);
+      border-color: #cbd5e1;
+      box-shadow: var(--shadow-hover);
+    }
+
+    .model-card:focus-visible {
+      outline: 2px solid var(--primary-light);
+      outline-offset: 2px;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .card-title-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .platform-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      flex: none;
+      display: grid;
+      place-items: center;
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 10%, white);
+      border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+    }
+
+    .platform-avatar svg {
+      width: 18px;
+      height: 18px;
+    }
+
+    .card-main-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .card-model-name {
+      font-size: 15.5px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .card-prices {
+      margin-top: 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12.5px;
+      color: var(--ink-secondary);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .card-price-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .card-price-item span {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+
+    .card-price-item b {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .card-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: none;
+    }
+
+    .btn-detail {
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--ink-secondary);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      transition: all 0.15s ease;
+    }
+
+    .model-card:hover .btn-detail {
+      border-color: #cbd5e1;
+      background: var(--surface-soft);
+      color: var(--ink);
+    }
+
+    .btn-copy-mini {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+      transition: all 0.15s ease;
+    }
+
+    .btn-copy-mini:hover {
+      background: #f1f5f9;
+      color: var(--ink);
+      border-color: #cbd5e1;
+    }
+
+    .card-footer {
+      margin-top: 16px;
+      padding-top: 12px;
+      border-top: 1px solid var(--line-soft);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .card-footer-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .card-group-name {
+      color: var(--ink-secondary);
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .billing-tag {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 2px 7px;
+      border-radius: 6px;
+      flex: none;
+    }
+
+    .billing-tag.token {
+      color: #0284c7;
+      background: #e0f2fe;
+    }
+
+    .billing-tag.image,
+    .billing-tag.request {
+      color: #0d9488;
+      background: #ccfbf1;
+    }
+
+    .card-footer-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--subtle);
+      font-size: 12px;
+      flex: none;
+    }
+
+    .card-rate-pill {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--muted);
+      background: #f1f5f9;
+      padding: 1px 6px;
+      border-radius: 5px;
+      font-size: 11.5px;
+    }
+
+    .card-more-groups {
+      color: var(--subtle);
+      font-size: 11.5px;
+    }
+
+    .empty-state {
+      margin-top: 8px;
+      padding: 60px 20px;
+      border-radius: 18px;
+      text-align: center;
+      color: var(--muted);
+      background: var(--surface);
+      border: 1px dashed #cbd5e1;
+      font-size: 14px;
+    }
+
+    /* 抽屉与遮罩 */
+    .mask {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      background: rgba(15, 23, 42, 0.30);
+      backdrop-filter: blur(2px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .mask.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .drawer {
+      position: fixed;
+      top: 0;
+      right: 0;
+      z-index: 40;
+      width: min(680px, 100%);
+      height: 100%;
+      background: #ffffff;
+      box-shadow: -20px 0 50px rgba(15, 23, 42, 0.14);
+      display: flex;
+      flex-direction: column;
+      transform: translateX(100%);
+      visibility: hidden;
+      transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.24s;
+    }
+
+    .drawer.show {
+      transform: translateX(0);
+      visibility: visible;
+    }
+
+    .drawer-top {
+      padding: 22px 26px 0;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .drawer-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 0;
+    }
+
+    .drawer-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: grid;
+      place-items: center;
+      flex: none;
+    }
+
+    .drawer-avatar svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .drawer-model-name {
+      margin: 0;
+      font-size: 21px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .icon-btn {
+      border: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      color: var(--muted);
+      background: transparent;
+      display: grid;
+      place-items: center;
+      transition: background 0.15s ease, color 0.15s ease;
+    }
+
+    .icon-btn:hover {
+      background: #f1f5f9;
+      color: var(--ink);
+    }
+
+    .drawer-submeta {
+      padding: 6px 26px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .drawer-submeta .dot {
+      color: #cbd5e1;
+    }
+
+    .drawer-submeta .billing-link {
+      color: #0284c7;
+      font-weight: 600;
+    }
+
+    /* 概览 / API 切换槽 */
+    .drawer-tabs {
+      margin: 18px 26px 0;
+      padding: 4px;
+      border-radius: 12px;
+      background: #f1f5f9;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+    }
+
+    .drawer-tab {
+      border: 0;
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.15s ease;
+    }
+
+    .drawer-tab.on {
+      color: var(--ink);
+      background: #ffffff;
+      box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+    }
+
+    .drawer-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 22px 26px 36px;
+    }
+
+    /* 概览面板（严格按图1：基本信息 / API端点 / 分组价格） */
+    .ov-section {
+      padding-bottom: 22px;
+      margin-bottom: 22px;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .ov-section:last-child {
+      border-bottom: 0;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .ov-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .ov-circle {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      flex: none;
+      color: #fff;
+    }
+
+    .ov-circle.blue {
+      background: linear-gradient(135deg, #60a5fa, #3b82f6);
+      box-shadow: 0 4px 10px rgba(59, 130, 246, 0.22);
+    }
+
+    .ov-circle.purple {
+      background: linear-gradient(135deg, #c084fc, #a855f7);
+      box-shadow: 0 4px 10px rgba(168, 85, 247, 0.22);
+    }
+
+    .ov-circle.amber {
+      background: linear-gradient(135deg, #fbbf24, #f59e0b);
+      box-shadow: 0 4px 10px rgba(245, 158, 11, 0.22);
+    }
+
+    .ov-head-text h4 {
+      margin: 0;
+      font-size: 14.5px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .ov-head-text p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .ov-desc {
+      margin: 0;
+      font-size: 13.5px;
+      color: var(--ink-secondary);
+      line-height: 1.65;
+    }
+
+    .ov-endpoint-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 2px;
+      font-size: 13.5px;
+    }
+
+    .ov-endpoint-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      color: var(--ink);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.16);
+    }
+
+    .ov-method {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+    }
+
+    /* 分组价格三列表格（图1） */
+    .ov-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+
+    .ov-table th {
+      text-align: left;
+      padding: 10px 10px;
+      color: var(--muted);
+      font-size: 12.5px;
+      font-weight: 600;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .ov-table td {
+      padding: 14px 10px;
+      vertical-align: middle;
+      border-bottom: 1px solid var(--line-soft);
+    }
+
+    .ov-group-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      font-size: 12.5px;
+      font-weight: 600;
+      color: var(--ink);
+    }
+
+    .ov-group-sub {
+      margin-top: 6px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+
+    .ov-mini-badge {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 1px 6px;
+      border-radius: 5px;
+    }
+
+    .ov-mini-badge.rate {
+      color: var(--primary);
+      background: var(--primary-bg);
+    }
+
+    .ov-mini-badge.exclusive {
+      color: #7c3aed;
+      background: #f3e8ff;
+    }
+
+    .ov-mini-badge.sub {
+      color: #b45309;
+      background: #fef3c7;
+    }
+
+    .ov-type-pill {
+      display: inline-block;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #7c3aed;
+      background: #f3e8ff;
+    }
+
+    .ov-price-summary {
+      display: grid;
+      gap: 6px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .ov-price-item {
+      line-height: 1.35;
+    }
+
+    .ov-price-item strong {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .ov-price-item .unit {
+      display: block;
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    .ov-extra-note {
+      margin-top: 4px;
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    /* API 面板（严格按图2、图3） */
+    .api-header-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .api-sec-title {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .api-sec-title svg {
+      color: var(--muted);
+    }
+
+    .lang-tabs {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px;
+      border-radius: 10px;
+      background: #f1f5f9;
+      gap: 2px;
+    }
+
+    .lang-tabs button {
+      border: 0;
+      border-radius: 7px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      background: transparent;
+      transition: all 0.15s ease;
+    }
+
+    .lang-tabs button.on {
+      color: var(--ink);
+      background: #ffffff;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+    }
+
+    .code-card {
+      position: relative;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+    }
+
+    .code-copy-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 30px;
+      height: 30px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: transparent;
+      color: var(--muted);
+      display: grid;
+      place-items: center;
+    }
+
+    .code-copy-btn:hover {
+      background: #ffffff;
+      border-color: var(--line);
+      color: var(--ink);
+    }
+
+    .code-card pre {
+      margin: 0;
+      padding: 16px 44px 16px 18px;
+      overflow-x: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace;
+      font-size: 12.5px;
+      line-height: 1.75;
+      color: #1e293b;
+      white-space: pre;
+    }
+
+    .api-replace-hint {
+      margin: 12px 0 22px;
+      font-size: 12.5px;
+      color: var(--muted);
+    }
+
+    .api-replace-hint code,
+    .auth-box code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 12px;
+      padding: 2px 6px;
+      border-radius: 5px;
+      background: #f1f5f9;
+      color: var(--ink-secondary);
+    }
+
+    .auth-box {
+      margin-top: 10px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: #f8fafc;
+      border: 1px solid var(--line);
+      font-size: 13px;
+      color: var(--ink-secondary);
+      line-height: 1.75;
+    }
+
+    .auth-box p {
+      margin: 0;
+    }
+
+    .auth-box p + p {
+      margin-top: 6px;
+      color: var(--muted);
+      font-size: 12.5px;
+    }
+
+    /* 轻提示 */
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      z-index: 60;
+      transform: translateX(-50%) translateY(8px);
+      border-radius: 999px;
+      padding: 8px 16px;
+      color: #fff;
+      background: #0f172a;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.2);
+      opacity: 0;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      font-size: 13px;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 720px) {
+      .topbar-inner, main {
+        width: calc(100% - 28px);
+      }
+      .filter-row {
+        flex-direction: column;
+        gap: 6px;
+      }
+      .filter-label {
+        width: auto;
+        padding-top: 0;
+      }
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+      .drawer-top, .drawer-submeta, .drawer-tabs, .drawer-body {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+      .drawer-tabs {
+        margin-left: 18px;
+        margin-right: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <div class="logo">S</div>
+        <span class="brand-title">轻驿-api</span>
+        <span class="brand-badge">模型广场</span>
+      </div>
+      <div class="topbar-right">
+        <span id="authStatus" class="auth-status">当前：已登录（含专属分组）</span>
+        <button id="authToggle" class="auth-btn" type="button">切换未登录预览</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="hero">
+      <div class="hero-left">
+        <h1>模型广场</h1>
+        <p class="hero-sub">按分组浏览可用模型与实时折算价格，点击任意模型卡片可查看分组明细与 API 调用示例。</p>
+      </div>
+      <div id="anonHint" class="anon-banner" hidden>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        登录后可查看你的专属分组与专属倍率
+      </div>
+    </div>
+
+    <!-- 上方筛选区 -->
+    <section class="filter-panel" aria-label="模型筛选">
+      <div class="filter-row">
+        <div class="filter-label">平台</div>
+        <div id="platformRow" class="chips"></div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">分组</div>
+        <div id="groupRow" class="chips"></div>
+      </div>
+      <div class="filter-row">
+        <div class="filter-label">倍率</div>
+        <div id="rateRow" class="chips"></div>
+      </div>
+    </section>
+
+    <!-- 模型计数与搜索工具栏 -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <h2 id="modelCount" class="model-count">0 个模型</h2>
+        <span class="unit-hint">单位：$ / 1M Tokens（同一模型默认展示最低倍率分组价格）</span>
+        <button id="resetBtn" class="reset-btn" type="button" hidden>重置筛选</button>
+      </div>
+      <div class="search-box">
+        <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="7" />
+          <path d="M20 20l-3.5-3.5" />
+        </svg>
+        <input id="searchInput" type="text" placeholder="搜索模型名称..." autocomplete="off" />
+        <button id="clearSearch" class="clear-btn" type="button" hidden aria-label="清空搜索">×</button>
+      </div>
+    </div>
+
+    <!-- 下方模型卡片网格（同一模型只出一张卡） -->
+    <div id="cardsGrid" class="cards-grid"></div>
+    <div id="emptyState" class="empty-state" hidden>没有匹配的模型</div>
+  </main>
+
+  <!-- 详情抽屉 -->
+  <div id="mask" class="mask"></div>
+  <aside id="drawer" class="drawer" aria-hidden="true">
+    <div class="drawer-top">
+      <div class="drawer-title-row">
+        <div id="dAvatar" class="drawer-avatar"></div>
+        <h3 id="dName" class="drawer-model-name">model-name</h3>
+        <button id="copyModelName" class="icon-btn" type="button" title="复制模型名称" aria-label="复制模型名称">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="9" y="9" width="11" height="11" rx="2" />
+            <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+          </svg>
+        </button>
+      </div>
+      <button id="closeDrawer" class="icon-btn" type="button" aria-label="关闭详情">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6 6 18M6 6l12 12" />
+        </svg>
+      </button>
+    </div>
+
+    <div id="dSubmeta" class="drawer-submeta"></div>
+
+    <div class="drawer-tabs" role="tablist">
+      <button id="tabOverview" class="drawer-tab on" type="button" role="tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 16v-4M12 8h.01" />
+        </svg>
+        概览
+      </button>
+      <button id="tabApi" class="drawer-tab" type="button" role="tab">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="m16 18 6-6-6-6M8 6l-6 6 6 6" />
+        </svg>
+        API
+      </button>
+    </div>
+
+    <div id="drawerBody" class="drawer-body"></div>
+  </aside>
+
+  <div id="toast" class="toast" role="status"></div>
+
+  <script>
+    // 运行时获取当前前端域名；若以本地文件 file:// 打开则平滑回退演示域名
+    function getRuntimeOrigin() {
+      if (typeof window !== 'undefined' && window.location && /^https?:\/\//i.test(window.location.origin)) {
+        return window.location.origin
+      }
+      return 'https://api.example.com'
+    }
+
+    // 平台配色与真實矢量图标（与前端 PlatformIcon.vue 一致）
+    var PLATFORMS = {
+      anthropic: {
+        label: 'Anthropic',
+        color: '#f97316',
+        svg: '<svg viewBox="0 0 16 16" fill="currentColor"><path d="m3.127 10.604 3.135-1.76.053-.153-.053-.085H6.11l-.525-.032-1.791-.048-1.554-.065-1.505-.08-.38-.081L0 7.832l.036-.234.32-.214.455.04 1.009.069 1.513.105 1.097.064 1.626.17h.259l.036-.105-.089-.065-.068-.064-1.566-1.062-1.695-1.121-.887-.646-.48-.327-.243-.306-.104-.67.435-.48.585.04.15.04.593.456 1.267.981 1.654 1.218.242.202.097-.068.012-.049-.109-.181-.9-1.626-.96-1.655-.428-.686-.113-.411a2 2 0 0 1-.068-.484l.496-.674L4.446 0l.662.089.279.242.411.94.666 1.48 1.033 2.014.302.597.162.553.06.17h.105v-.097l.085-1.134.157-1.392.154-1.792.052-.504.25-.605.497-.327.387.186.319.456-.045.294-.19 1.23-.37 1.93-.243 1.29h.142l.161-.16.654-.868 1.097-1.372.484-.545.565-.601.363-.287h.686l.505.751-.226.775-.707.895-.585.759-.839 1.13-.524.904.048.072.125-.012 1.897-.403 1.024-.186 1.223-.21.553.258.06.263-.218.536-1.307.323-1.533.307-2.284.54-.028.02.032.04 1.029.098.44.024h1.077l2.005.15.525.346.315.424-.053.323-.807.411-3.631-.863-.872-.218h-.12v.073l.726.71 1.331 1.202 1.667 1.55.084.383-.214.302-.226-.032-1.464-1.101-.565-.497-1.28-1.077h-.084v.113l.295.432 1.557 2.34.08.718-.112.234-.404.141-.444-.08-.911-1.28-.94-1.44-.759-1.291-.093.053-.448 4.821-.21.246-.484.186-.403-.307-.214-.496.214-.98.258-1.28.21-1.016.19-1.263.112-.42-.008-.028-.092.012-.953 1.307-1.448 1.957-1.146 1.227-.274.109-.477-.247.045-.44.266-.39 1.586-2.018.956-1.25.617-.723-.004-.105h-.036l-4.212 2.736-.75.096-.324-.302.04-.496.154-.162 1.267-.871z"/></svg>'
+      },
+      openai: {
+        label: 'OpenAI',
+        color: '#22c55e',
+        svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/></svg>'
+      },
+      gemini: {
+        label: 'Google',
+        color: '#3b82f6',
+        svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l1.89 7.2L21 12l-7.11 2.8L12 22l-1.89-7.2L3 12l7.11-2.8L12 2z"/></svg>'
+      },
+      antigravity: {
+        label: 'Antigravity',
+        color: '#a855f7',
+        svg: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>'
+      }
+    }
+
+    // 分组模拟数据
+    var GROUPS = [
+      { id: 'claude', name: 'claude', platform: 'anthropic', rate: 0.1, userRate: null, exclusive: false, subscription: false, peak: null, longContext: true, imageIndependent: false, imageRate: 1 },
+      { id: 'antigravity', name: 'antigravity', platform: 'antigravity', rate: 1, userRate: null, exclusive: false, subscription: false, peak: null, longContext: true, imageIndependent: false, imageRate: 1 },
+      { id: 'openai-plus', name: 'openai-plus', platform: 'openai', rate: 0.8, userRate: 0.6, exclusive: true, subscription: true, peak: { start: '14:00', end: '18:00', multiplier: 1.5 }, longContext: false, imageIndependent: false, imageRate: 1 },
+      { id: 'gemini-vertex', name: 'gemini-语言模型分组', platform: 'gemini', rate: 0.4, userRate: null, exclusive: false, subscription: false, peak: null, longContext: true, imageIndependent: true, imageRate: 0.5 }
+    ]
+
+    // 模型模拟数据
+    var MODELS = [
+      { name: 'claude-opus-5', platform: 'anthropic', billing: 'token', endpoint: 'openai: /v1/chat/completions', base: { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.5 }, offers: ['claude', 'antigravity'] },
+      { name: 'claude-opus-4-8', platform: 'anthropic', billing: 'token', endpoint: 'openai: /v1/chat/completions', base: { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.5 }, offers: ['claude'] },
+      { name: 'claude-opus-4-6-thinking', platform: 'anthropic', billing: 'token', endpoint: 'openai: /v1/chat/completions', base: { input: 5, output: 25, cacheWrite: 6.25, cacheRead: 0.5 }, timePricing: { timezone: 'Asia/Shanghai', weekdaysOnly: true, periods: [{ start: '00:00', end: '08:00', multiplier: 0.8 }] }, offers: ['claude', 'antigravity'] },
+      { name: 'claude-sonnet-4-6', platform: 'anthropic', billing: 'token', endpoint: 'openai: /v1/chat/completions', base: { input: 3, output: 15, cacheWrite: 3.75, cacheRead: 0.3 }, offers: ['claude', 'antigravity'] },
+      { name: 'gemini-3.1-pro-low', platform: 'gemini', billing: 'token', endpoint: 'openai: /v1/chat/completions', base: { input: 2, output: 12, cacheWrite: null, cacheRead: 0.2 }, offers: ['gemini-vertex', 'antigravity'] },
+      { name: 'gpt-5.5', platform: 'openai', billing: 'token', endpoint: 'openai: /v1/chat/completions', basis: 'whole_request', base: { input: 5, output: 30, cacheWrite: null, cacheRead: 0.5 }, intervals: [{ label: '≤272K', input: 5, output: 30, cacheRead: 0.5 }, { label: '>272K', input: 10, output: 45, cacheRead: 1.0 }], offers: ['openai-plus', 'antigravity'] },
+      { name: 'gpt-oss-120b-medium', platform: 'openai', billing: 'token', endpoint: 'openai: /v1/chat/completions', base: { input: 2.5, output: 15, cacheWrite: null, cacheRead: 0.25 }, offers: ['antigravity'] },
+      { name: 'gpt-image-1', platform: 'openai', billing: 'image', endpoint: 'openai: /v1/images/generations', unitPrice: 0.04, offers: ['gemini-vertex', 'openai-plus'] },
+      { name: 'o3-deep-research', platform: 'openai', billing: 'request', endpoint: 'openai: /v1/chat/completions', unitPrice: 0.08, offers: ['openai-plus'] }
+    ]
+
+    var state = {
+      loggedIn: true,
+      platform: 'all',
+      groupId: 'all',
+      rate: 'all',
+      search: '',
+      openKey: null,
+      tab: 'overview',
+      lang: 'curl'
+    }
+
+    var toastTimer = 0
+
+    // HTML 转义
+    function esc(value) {
+      return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]
+      })
+    }
+
+    function platformInfo(platform) {
+      return PLATFORMS[platform] || { label: platform, color: '#14b8a6', svg: PLATFORMS.openai.svg }
+    }
+
+    function modelKey(model) {
+      return model.platform + '|' + model.name
+    }
+
+    function findGroup(id) {
+      for (var i = 0; i < GROUPS.length; i++) {
+        if (GROUPS[i].id === id) return GROUPS[i]
+      }
+      return null
+    }
+
+    function findModel(key) {
+      for (var i = 0; i < MODELS.length; i++) {
+        if (modelKey(MODELS[i]) === key) return MODELS[i]
+      }
+      return null
+    }
+
+    // 生效倍率：优先取登录专属倍率，否则取分组默认倍率
+    function effectiveRate(group) {
+      if (state.loggedIn && group.userRate != null) return group.userRate
+      return group.rate
+    }
+
+    // 生图模型在开启独立倍率的分组下取生图倍率
+    function billingRate(model, group) {
+      if (model.billing === 'image' && group.imageIndependent) return group.imageRate
+      return effectiveRate(group)
+    }
+
+    function availableGroups() {
+      var list = []
+      for (var i = 0; i < GROUPS.length; i++) {
+        if (!state.loggedIn && GROUPS[i].exclusive) continue
+        list.push(GROUPS[i])
+      }
+      return list
+    }
+
+    // 三维互斥置灰判定
+    function optionEnabled(kind, value) {
+      var groups = availableGroups()
+      for (var i = 0; i < groups.length; i++) {
+        var g = groups[i]
+        var pOk = kind === 'platform' ? g.platform === value : (state.platform === 'all' || g.platform === state.platform)
+        var gOk = kind === 'group' ? g.id === value : (state.groupId === 'all' || g.id === state.groupId)
+        var rOk = kind === 'rate' ? effectiveRate(g) === value : (state.rate === 'all' || effectiveRate(g) === state.rate)
+        if (pOk && gOk && rOk) return true
+      }
+      return false
+    }
+
+    function groupVisible(group) {
+      if (!state.loggedIn && group.exclusive) return false
+      if (state.platform !== 'all' && group.platform !== state.platform) return false
+      if (state.groupId !== 'all' && group.id !== state.groupId) return false
+      if (state.rate !== 'all' && effectiveRate(group) !== state.rate) return false
+      return true
+    }
+
+    // 模型在当前筛选下命中的分组（按生效倍率升序）
+    function visibleOffers(model) {
+      var list = []
+      for (var i = 0; i < model.offers.length; i++) {
+        var g = findGroup(model.offers[i])
+        if (g && groupVisible(g)) list.push(g)
+      }
+      list.sort(function (a, b) {
+        var diff = billingRate(model, a) - billingRate(model, b)
+        if (diff !== 0) return diff
+        return a.name.localeCompare(b.name)
+      })
+      return list
+    }
+
+    function matchesSearch(model) {
+      var q = state.search.trim().toLowerCase()
+      if (!q) return true
+      return model.name.toLowerCase().indexOf(q) !== -1
+    }
+
+    function visibleModels() {
+      var list = []
+      for (var i = 0; i < MODELS.length; i++) {
+        var m = MODELS[i]
+        if (!matchesSearch(m)) continue
+        if (!visibleOffers(m).length) continue
+        list.push(m)
+      }
+      return list
+    }
+
+    // 价格格式化：卡片保底 2 位小数，概览表可保留 4 位小数（贴合图1风格）
+    function formatUsd(value, minDecimals) {
+      var minD = minDecimals == null ? 2 : minDecimals
+      if (value == null || isNaN(value)) return '-'
+      var text = Number(value).toPrecision(10).replace(/\.?0+$/, '')
+      if (text.indexOf('e') === -1 && text.indexOf('E') === -1) {
+        var dot = text.indexOf('.')
+        var digits = dot === -1 ? 0 : text.length - dot - 1
+        if (digits < minD) {
+          text = (dot === -1 ? text + '.' : text) + '000000'.slice(0, minD - digits)
+        }
+      }
+      return '$' + text
+    }
+
+    function formatRate(value) {
+      return String(Number(Number(value).toPrecision(10))) + 'x'
+    }
+
+    function billingLabel(billing) {
+      if (billing === 'image') return '按图片计费'
+      if (billing === 'request') return '按次计费'
+      return '按量计费'
+    }
+
+    function uniquePlatforms() {
+      var seen = {}
+      var list = []
+      var groups = availableGroups()
+      for (var i = 0; i < groups.length; i++) {
+        var p = groups[i].platform
+        if (!seen[p]) {
+          seen[p] = true
+          list.push(p)
+        }
+      }
+      list.sort()
+      return list
+    }
+
+    function uniqueRates() {
+      var seen = {}
+      var list = []
+      var groups = availableGroups()
+      for (var i = 0; i < groups.length; i++) {
+        var r = effectiveRate(groups[i])
+        if (!seen[r]) {
+          seen[r] = true
+          list.push(r)
+        }
+      }
+      list.sort(function (a, b) { return a - b })
+      return list
+    }
+
+    function ensureSelection() {
+      var platforms = uniquePlatforms()
+      var groups = availableGroups()
+      var rates = uniqueRates()
+      if (state.platform !== 'all' && platforms.indexOf(state.platform) === -1) state.platform = 'all'
+      var gFound = state.groupId === 'all'
+      for (var i = 0; i < groups.length && !gFound; i++) {
+        if (groups[i].id === state.groupId) gFound = true
+      }
+      if (!gFound) state.groupId = 'all'
+      var rFound = state.rate === 'all'
+      for (var j = 0; j < rates.length && !rFound; j++) {
+        if (rates[j] === state.rate) rFound = true
+      }
+      if (!rFound) state.rate = 'all'
+      if (state.openKey) {
+        var opened = findModel(state.openKey)
+        if (!opened || !matchesSearch(opened) || !visibleOffers(opened).length) {
+          state.openKey = null
+        }
+      }
+    }
+
+    function renderFilters() {
+      var platforms = uniquePlatforms()
+      var pHtml = '<button type="button" class="chip' + (state.platform === 'all' ? ' active' : '') + '" data-kind="platform" data-value="all">全部</button>'
+      for (var i = 0; i < platforms.length; i++) {
+        var p = platforms[i]
+        var info = platformInfo(p)
+        var active = state.platform === p ? ' active' : ''
+        var enabled = optionEnabled('platform', p)
+        pHtml += '<button type="button" class="chip tint' + active + '" style="--chip:' + info.color + '" data-kind="platform" data-value="' + esc(p) + '"' + (enabled ? '' : ' disabled') + '>' + info.svg + '<span>' + esc(p) + '</span></button>'
+      }
+      document.getElementById('platformRow').innerHTML = pHtml
+
+      var groups = availableGroups()
+      var gHtml = '<button type="button" class="chip' + (state.groupId === 'all' ? ' active' : '') + '" data-kind="group" data-value="all">全部</button>'
+      for (var g = 0; g < groups.length; g++) {
+        var grp = groups[g]
+        var gInfo = platformInfo(grp.platform)
+        var gActive = state.groupId === grp.id ? ' active' : ''
+        var gEnabled = optionEnabled('group', grp.id)
+        gHtml += '<button type="button" class="chip tint' + gActive + '" style="--chip:' + gInfo.color + '" data-kind="group" data-value="' + esc(grp.id) + '"' + (gEnabled ? '' : ' disabled') + '><span>' + esc(grp.name) + '</span><span class="chip-rate">' + formatRate(effectiveRate(grp)) + '</span></button>'
+      }
+      document.getElementById('groupRow').innerHTML = gHtml
+
+      var rates = uniqueRates()
+      var rHtml = '<button type="button" class="chip' + (state.rate === 'all' ? ' active' : '') + '" data-kind="rate" data-value="all">全部</button>'
+      for (var r = 0; r < rates.length; r++) {
+        var val = rates[r]
+        var rActive = state.rate === val ? ' active' : ''
+        var rEnabled = optionEnabled('rate', val)
+        rHtml += '<button type="button" class="chip' + rActive + '" data-kind="rate" data-value="' + val + '"' + (rEnabled ? '' : ' disabled') + '>' + formatRate(val) + '</button>'
+      }
+      document.getElementById('rateRow').innerHTML = rHtml
+    }
+
+    // 渲染极简白底模型卡片（参考 PuppyRouter）
+    function renderCards() {
+      var models = visibleModels()
+      var html = ''
+      for (var i = 0; i < models.length; i++) {
+        var m = models[i]
+        var offers = visibleOffers(m)
+        var bestGroup = offers[0]
+        var rate = billingRate(m, bestGroup)
+        var pInfo = platformInfo(m.platform)
+
+        var priceHtml = ''
+        if (m.billing === 'token') {
+          var inPrice = formatUsd(m.base.input * rate, 2)
+          var outPrice = formatUsd(m.base.output * rate, 2)
+          priceHtml += '<div class="card-price-row">' +
+            '<span class="card-price-item"><span>输入</span><b>' + esc(inPrice) + '</b></span>' +
+            '<span class="card-price-item"><span>输出</span><b>' + esc(outPrice) + '</b></span>' +
+            '</div>'
+          if (m.base.cacheRead != null) {
+            priceHtml += '<div class="card-price-row"><span class="card-price-item"><span>缓存</span><b>' + esc(formatUsd(m.base.cacheRead * rate, 2)) + '</b></span></div>'
+          }
+        } else {
+          var unitText = m.billing === 'image' ? '单张价格' : '单次价格'
+          priceHtml += '<div class="card-price-row"><span class="card-price-item"><span>' + unitText + '</span><b>' + esc(formatUsd(m.unitPrice * rate, 2)) + '</b></span></div>'
+        }
+
+        var extraGroups = offers.length > 1 ? '<span class="card-more-groups">+' + (offers.length - 1) + '</span>' : ''
+
+        html += '<article class="model-card" role="button" tabindex="0" data-key="' + esc(modelKey(m)) + '" style="--accent:' + pInfo.color + '">' +
+          '<div class="card-header">' +
+            '<div class="card-title-group">' +
+              '<div class="platform-avatar">' + pInfo.svg + '</div>' +
+              '<div class="card-main-info">' +
+                '<div class="card-model-name" title="' + esc(m.name) + '">' + esc(m.name) + '</div>' +
+                '<div class="card-prices">' + priceHtml + '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="card-actions">' +
+              '<span class="btn-detail">详情 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m9 18 6-6-6-6"/></svg></span>' +
+              '<button type="button" class="btn-copy-mini" data-copy="' + esc(m.name) + '" title="复制模型名" aria-label="复制模型名">' +
+                '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>' +
+              '</button>' +
+            '</div>' +
+          '</div>' +
+          '<div class="card-footer">' +
+            '<div class="card-footer-left">' +
+              '<span class="card-group-name">' + esc(bestGroup.name) + '</span>' +
+              '<span class="billing-tag ' + esc(m.billing) + '">' + billingLabel(m.billing) + '</span>' +
+            '</div>' +
+            '<div class="card-footer-right">' +
+              '<span>' + esc(m.platform) + '</span>' +
+              '<span class="card-rate-pill">' + formatRate(rate) + '</span>' +
+              extraGroups +
+            '</div>' +
+          '</div>' +
+        '</article>'
+      }
+
+      document.getElementById('cardsGrid').innerHTML = html
+      document.getElementById('modelCount').innerHTML = '<span>' + models.length + '</span> 个模型'
+      var empty = document.getElementById('emptyState')
+      empty.hidden = models.length > 0
+      empty.textContent = state.search.trim() ? '没有匹配的模型' : '当前筛选条件下暂无可用模型'
+    }
+
+    // 渲染详情抽屉 - 概览面板（严格按图1：基本信息 / API端点 / 分组价格）
+    function buildOverviewHtml(model, offers) {
+      var rowsHtml = ''
+      for (var i = 0; i < offers.length; i++) {
+        var g = offers[i]
+        var rate = billingRate(model, g)
+
+        var subBadges = '<div class="ov-group-sub"><span class="ov-mini-badge rate">倍率 ' + formatRate(rate) + '</span>'
+        if (g.exclusive) subBadges += '<span class="ov-mini-badge exclusive">专属</span>'
+        if (g.subscription) subBadges += '<span class="ov-mini-badge sub">订阅</span>'
+        subBadges += '</div>'
+
+        var summaryHtml = '<div class="ov-price-summary">'
+        if (model.billing === 'token') {
+          var inVal = formatUsd(model.base.input * rate, 4)
+          var outVal = formatUsd(model.base.output * rate, 4)
+          summaryHtml += '<div class="ov-price-item"><strong>输入价格 ' + esc(inVal) + '</strong><span class="unit">/ 1M Tokens</span></div>'
+          summaryHtml += '<div class="ov-price-item"><strong>补全价格 ' + esc(outVal) + '</strong><span class="unit">/ 1M Tokens</span></div>'
+          if (model.base.cacheRead != null) {
+            summaryHtml += '<div class="ov-price-item"><strong>缓存读取 ' + esc(formatUsd(model.base.cacheRead * rate, 4)) + '</strong><span class="unit">/ 1M Tokens</span></div>'
+          }
+        } else {
+          var uLabel = model.billing === 'image' ? '/ 张' : '/ 次'
+          summaryHtml += '<div class="ov-price-item"><strong>调用价格 ' + esc(formatUsd(model.unitPrice * rate, 4)) + '</strong><span class="unit">' + uLabel + '</span></div>'
+        }
+
+        // 附加说明（阶梯、高峰、分时）
+        var notes = []
+        if (g.peak) {
+          notes.push('高峰时段 ' + g.peak.start + '-' + g.peak.end + ' 倍率 ×' + g.peak.multiplier)
+        }
+        if (model.intervals && model.intervals.length > 1) {
+          notes.push(g.longContext === false ? '未启用长上下文阶梯（按基础档计费）' : '支持长上下文阶梯计价')
+        }
+        if (model.timePricing) {
+          notes.push('含分时折扣时段')
+        }
+        if (notes.length) {
+          summaryHtml += '<div class="ov-extra-note">' + esc(notes.join(' · ')) + '</div>'
+        }
+        summaryHtml += '</div>'
+
+        rowsHtml += '<tr>' +
+          '<td><div class="ov-group-pill">' + esc(g.name) + '</div>' + subBadges + '</td>' +
+          '<td><span class="ov-type-pill">' + billingLabel(model.billing) + '</span></td>' +
+          '<td>' + summaryHtml + '</td>' +
+        '</tr>'
+      }
+
+      return '' +
+        '<div class="ov-section">' +
+          '<div class="ov-head">' +
+            '<div class="ov-circle blue">' +
+              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg>' +
+            '</div>' +
+            '<div class="ov-head-text">' +
+              '<h4>基本信息</h4>' +
+              '<p>模型的详细描述和基本特性</p>' +
+            '</div>' +
+          '</div>' +
+          '<p class="ov-desc">暂无模型描述</p>' +
+        '</div>' +
+
+        '<div class="ov-section">' +
+          '<div class="ov-head">' +
+            '<div class="ov-circle purple">' +
+              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>' +
+            '</div>' +
+            '<div class="ov-head-text">' +
+              '<h4>API端点</h4>' +
+              '<p>模型支持的接口端点信息</p>' +
+            '</div>' +
+          '</div>' +
+          '<div class="ov-endpoint-row">' +
+            '<div class="ov-endpoint-left"><span class="status-dot"></span><span>' + esc(model.endpoint || 'openai: /v1/chat/completions') + '</span></div>' +
+            '<span class="ov-method">POST</span>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="ov-section">' +
+          '<div class="ov-head">' +
+            '<div class="ov-circle amber">' +
+              '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="9"/><path d="M9 10h6M9 14h6M12 7v10"/></svg>' +
+            '</div>' +
+            '<div class="ov-head-text">' +
+              '<h4>分组价格</h4>' +
+              '<p>不同用户分组的价格信息</p>' +
+            '</div>' +
+          '</div>' +
+          '<table class="ov-table">' +
+            '<thead><tr><th>分组</th><th>计费类型</th><th>价格摘要</th></tr></thead>' +
+            '<tbody>' + rowsHtml + '</tbody>' +
+          '</table>' +
+        '</div>'
+    }
+
+    // 生成统一 /v1/chat/completions 协议与运行时域名的调用示例（严格按图2、图3）
+    function buildSnippet(model) {
+      var endpoint = getRuntimeOrigin() + '/v1/chat/completions'
+      var prompt = 'Explain quantum entanglement in one paragraph.'
+      if (state.lang === 'curl') {
+        return 'curl ' + endpoint + ' \\\n' +
+          '  -H "Authorization: Bearer $YOUR_API_KEY" \\\n' +
+          '  -H "Content-Type: application/json" \\\n' +
+          '  -d \'{\n' +
+          '    "model": "' + model.name + '",\n' +
+          '    "messages": [\n' +
+          '      {\n' +
+          '        "role": "user",\n' +
+          '        "content": "' + prompt + '"\n' +
+          '      }\n' +
+          '    ],\n' +
+          '    "temperature": 0.7\n' +
+          '  }\''
+      }
+      if (state.lang === 'python') {
+        return 'import requests\n\n' +
+          'response = requests.post(\n' +
+          '    "' + endpoint + '",\n' +
+          '    headers={\n' +
+          '        "Authorization": "Bearer $YOUR_API_KEY",\n' +
+          '        "Content-Type": "application/json",\n' +
+          '    },\n' +
+          '    json={\n' +
+          '        "model": "' + model.name + '",\n' +
+          '        "messages": [\n' +
+          '            {"role": "user", "content": "' + prompt + '"}\n' +
+          '        ],\n' +
+          '        "temperature": 0.7,\n' +
+          '    },\n' +
+          ')\n' +
+          'print(response.json())'
+      }
+      if (state.lang === 'typescript') {
+        return 'const response = await fetch("' + endpoint + '", {\n' +
+          '  method: "POST",\n' +
+          '  headers: {\n' +
+          '    "Authorization": "Bearer $YOUR_API_KEY",\n' +
+          '    "Content-Type": "application/json",\n' +
+          '  },\n' +
+          '  body: JSON.stringify({\n' +
+          '    model: "' + model.name + '",\n' +
+          '    messages: [\n' +
+          '      { role: "user", content: "' + prompt + '" }\n' +
+          '    ],\n' +
+          '    temperature: 0.7,\n' +
+          '  }),\n' +
+          '})\n\n' +
+          'const data = await response.json()\n' +
+          'console.log(data)'
+      }
+      return 'fetch("' + endpoint + '", {\n' +
+        '  method: "POST",\n' +
+        '  headers: {\n' +
+        '    "Authorization": "Bearer $YOUR_API_KEY",\n' +
+        '    "Content-Type": "application/json",\n' +
+        '  },\n' +
+        '  body: JSON.stringify({\n' +
+        '    model: "' + model.name + '",\n' +
+        '    messages: [\n' +
+        '      { role: "user", content: "' + prompt + '" }\n' +
+        '    ],\n' +
+        '    temperature: 0.7,\n' +
+        '  }),\n' +
+        '})\n' +
+        '  .then((res) => res.json())\n' +
+        '  .then((data) => console.log(data))'
+    }
+
+    function buildApiHtml(model) {
+      var langs = [
+        ['curl', 'cURL'],
+        ['python', 'Python'],
+        ['typescript', 'TypeScript'],
+        ['javascript', 'JavaScript']
+      ]
+      var langBtns = ''
+      for (var i = 0; i < langs.length; i++) {
+        var code = langs[i][0]
+        var label = langs[i][1]
+        langBtns += '<button type="button" data-lang="' + code + '" class="' + (state.lang === code ? 'on' : '') + '">' + label + '</button>'
+      }
+
+      return '' +
+        '<div class="api-header-row">' +
+          '<div class="api-sec-title">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M10 13l-2 2 2 2M14 17l2-2-2-2"/></svg>' +
+            '<span>调用示例</span>' +
+          '</div>' +
+          '<div class="lang-tabs">' + langBtns + '</div>' +
+        '</div>' +
+        '<div class="code-card">' +
+          '<button id="copyCodeBtn" class="code-copy-btn" type="button" title="复制代码" aria-label="复制代码">' +
+            '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>' +
+          '</button>' +
+          '<pre id="codePre">' + esc(buildSnippet(model)) + '</pre>' +
+        '</div>' +
+        '<p class="api-replace-hint">替换 <code>&lt;YOUR_API_KEY&gt;</code> 替换为令牌设置中的 API Key。</p>' +
+        '<div class="api-sec-title">' +
+          '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6M15.5 7.5l3 3"/></svg>' +
+          '<span>身份验证</span>' +
+        '</div>' +
+        '<div class="auth-box">' +
+          '<p>&gt; 所有请求必须携带 <code>Authorization: Bearer &lt;TOKEN&gt;</code> 请求头。Anthropic 格式的端点也接受 <code>x-api-key</code> 请求头。</p>' +
+          '<p>在「API 密钥」页面生成 API Key，可以按分组、速率等维度精细化授权。</p>' +
+        '</div>'
+    }
+
+    function renderDrawer() {
+      var drawer = document.getElementById('drawer')
+      var mask = document.getElementById('mask')
+      var model = state.openKey ? findModel(state.openKey) : null
+      var offers = model ? visibleOffers(model) : []
+      var isOpen = !!(model && offers.length)
+
+      drawer.className = isOpen ? 'drawer show' : 'drawer'
+      mask.className = isOpen ? 'mask show' : 'mask'
+      drawer.setAttribute('aria-hidden', isOpen ? 'false' : 'true')
+      document.body.className = isOpen ? 'lock' : ''
+      if (!isOpen) return
+
+      var pInfo = platformInfo(model.platform)
+      var avatar = document.getElementById('dAvatar')
+      avatar.style.color = pInfo.color
+      avatar.style.background = 'color-mix(in srgb, ' + pInfo.color + ' 12%, white)'
+      avatar.innerHTML = pInfo.svg
+
+      document.getElementById('dName').textContent = model.name
+      document.getElementById('dSubmeta').innerHTML =
+        '<span>' + esc(pInfo.label) + '</span>' +
+        '<span class="dot">·</span>' +
+        '<span class="billing-link">' + billingLabel(model.billing) + '</span>'
+
+      document.getElementById('tabOverview').className = 'drawer-tab' + (state.tab === 'overview' ? ' on' : '')
+      document.getElementById('tabApi').className = 'drawer-tab' + (state.tab === 'api' ? ' on' : '')
+
+      var body = document.getElementById('drawerBody')
+      body.innerHTML = state.tab === 'api' ? buildApiHtml(model) : buildOverviewHtml(model, offers)
+    }
+
+    function hasActiveFilters() {
+      return state.platform !== 'all' || state.groupId !== 'all' || state.rate !== 'all' || state.search.trim() !== ''
+    }
+
+    function render() {
+      ensureSelection()
+      renderFilters()
+      renderCards()
+      renderDrawer()
+
+      document.getElementById('anonHint').hidden = state.loggedIn
+      document.getElementById('authStatus').textContent = state.loggedIn ? '当前：已登录（含专属分组）' : '当前：未登录访客'
+      document.getElementById('authToggle').textContent = state.loggedIn ? '切换未登录预览' : '切换已登录预览'
+      document.getElementById('resetBtn').hidden = !hasActiveFilters()
+
+      var searchInput = document.getElementById('searchInput')
+      if (searchInput.value !== state.search) searchInput.value = state.search
+      document.getElementById('clearSearch').hidden = state.search === ''
+    }
+
+    function showToast(msg) {
+      var node = document.getElementById('toast')
+      node.textContent = msg
+      node.className = 'toast show'
+      window.clearTimeout(toastTimer)
+      toastTimer = window.setTimeout(function () {
+        node.className = 'toast'
+      }, 1600)
+    }
+
+    function copyText(text, tip) {
+      var message = tip || '已复制到剪贴板'
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(function () {
+          showToast(message)
+        }, function () {
+          fallbackCopy(text, message)
+        })
+        return
+      }
+      fallbackCopy(text, message)
+    }
+
+    function fallbackCopy(text, message) {
+      var area = document.createElement('textarea')
+      area.value = text
+      area.setAttribute('readonly', 'true')
+      area.style.cssText = 'position:fixed;left:0;top:0;opacity:0'
+      document.body.appendChild(area)
+      area.select()
+      var ok = false
+      try { ok = document.execCommand('copy') } catch (e) { ok = false }
+      document.body.removeChild(area)
+      showToast(ok ? message : '复制失败')
+    }
+
+    function openModel(key) {
+      state.openKey = key
+      state.tab = 'overview'
+      state.lang = 'curl'
+      render()
+    }
+
+    function closeDrawer() {
+      state.openKey = null
+      render()
+    }
+
+    // 绑定筛选点击事件
+    function onFilterRowClick(e) {
+      var btn = e.target.closest('button[data-kind]')
+      if (!btn || btn.disabled) return
+      var kind = btn.getAttribute('data-kind')
+      var val = btn.getAttribute('data-value')
+      if (kind === 'platform') state.platform = val
+      if (kind === 'group') state.groupId = val
+      if (kind === 'rate') state.rate = val === 'all' ? 'all' : Number(val)
+      render()
+    }
+
+    document.getElementById('platformRow').addEventListener('click', onFilterRowClick)
+    document.getElementById('groupRow').addEventListener('click', onFilterRowClick)
+    document.getElementById('rateRow').addEventListener('click', onFilterRowClick)
+
+    // 卡片点击（区分复制按钮与卡片主体）
+    document.getElementById('cardsGrid').addEventListener('click', function (e) {
+      var copyBtn = e.target.closest('button[data-copy]')
+      if (copyBtn) {
+        e.stopPropagation()
+        copyText(copyBtn.getAttribute('data-copy'), '模型名称已复制')
+        return
+      }
+      var card = e.target.closest('.model-card')
+      if (!card) return
+      openModel(card.getAttribute('data-key'))
+    })
+
+    document.getElementById('cardsGrid').addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return
+      var card = e.target.closest('.model-card')
+      if (!card) return
+      e.preventDefault()
+      openModel(card.getAttribute('data-key'))
+    })
+
+    document.getElementById('searchInput').addEventListener('input', function (e) {
+      state.search = e.target.value
+      render()
+    })
+
+    document.getElementById('clearSearch').addEventListener('click', function () {
+      state.search = ''
+      render()
+      document.getElementById('searchInput').focus()
+    })
+
+    document.getElementById('resetBtn').addEventListener('click', function () {
+      state.platform = 'all'
+      state.groupId = 'all'
+      state.rate = 'all'
+      state.search = ''
+      render()
+    })
+
+    document.getElementById('authToggle').addEventListener('click', function () {
+      state.loggedIn = !state.loggedIn
+      showToast(state.loggedIn ? '已切换为已登录视图（含专属分组）' : '已切换为未登录访客视图')
+      render()
+    })
+
+    document.getElementById('mask').addEventListener('click', closeDrawer)
+    document.getElementById('closeDrawer').addEventListener('click', closeDrawer)
+
+    document.getElementById('tabOverview').addEventListener('click', function () {
+      state.tab = 'overview'
+      render()
+    })
+
+    document.getElementById('tabApi').addEventListener('click', function () {
+      state.tab = 'api'
+      render()
+    })
+
+    document.getElementById('copyModelName').addEventListener('click', function () {
+      var model = findModel(state.openKey)
+      if (model) copyText(model.name, '模型名称已复制')
+    })
+
+    document.getElementById('drawerBody').addEventListener('click', function (e) {
+      var langBtn = e.target.closest('button[data-lang]')
+      if (langBtn) {
+        state.lang = langBtn.getAttribute('data-lang')
+        render()
+        return
+      }
+      if (e.target.closest('#copyCodeBtn')) {
+        var model = findModel(state.openKey)
+        if (model) copyText(buildSnippet(model), '调用代码已复制')
+      }
+    })
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && state.openKey) {
+        closeDrawer()
+      }
+    })
+
+    render()
+  </script>
+</body>
+</html>

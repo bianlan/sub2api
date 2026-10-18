@@ -31,15 +31,35 @@ const (
 	ContextKeyOpsFallbackAPIKey ContextKey = "ops_fallback_api_key"
 )
 
-// ForcePlatform 返回设置强制平台的中间件
-// 同时设置 request.Context（供 Service 使用）和 gin.Context（供 Handler 快速检查）
+// setForcePlatform 把强制平台同时写入 request.Context 和 gin.Context。
+func setForcePlatform(c *gin.Context, platform string) {
+	ctx := context.WithValue(c.Request.Context(), ctxkey.ForcePlatform, platform)
+	c.Request = c.Request.WithContext(ctx)
+	c.Set(string(ContextKeyForcePlatform), platform)
+}
+
+// ForcePlatform 返回设置强制平台的中间件。
+// 同时设置 request.Context（供 Service 使用）和 gin.Context（供 Handler 快速检查）。
 func ForcePlatform(platform string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 设置到 request.Context，使用 ctxkey.ForcePlatform 供 Service 层读取
-		ctx := context.WithValue(c.Request.Context(), ctxkey.ForcePlatform, platform)
-		c.Request = c.Request.WithContext(ctx)
-		// 同时设置到 gin.Context，供 Handler 快速检查
-		c.Set(string(ContextKeyForcePlatform), platform)
+		setForcePlatform(c, platform)
+		c.Next()
+	}
+}
+
+// ForceAntigravityGroupOnV1Beta 让 Antigravity 分组直接走标准 /v1beta。
+// 分组平台是 antigravity 时，按 /antigravity/v1beta 同样强制平台，客户端不必再写 /antigravity。
+// 已经设置过强制平台，或分组不是 antigravity 时，不改上下文。
+func ForceAntigravityGroupOnV1Beta() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if HasForcePlatform(c) {
+			c.Next()
+			return
+		}
+		apiKey, ok := GetAPIKeyFromContext(c)
+		if ok && apiKey != nil && apiKey.Group != nil && apiKey.Group.Platform == service.PlatformAntigravity {
+			setForcePlatform(c, service.PlatformAntigravity)
+		}
 		c.Next()
 	}
 }

@@ -94,6 +94,70 @@ func TestForcePlatform_SetsContextAndGinValue(t *testing.T) {
 	require.Equal(t, http.StatusOK, w.Code)
 }
 
+func TestForceAntigravityGroupOnV1Beta(t *testing.T) {
+	gin.SetMode(gin.TestMode)
+
+	// 先写入 API Key，再跑中间件，模拟 /v1beta 鉴权之后的顺序。
+	newRouter := func(groupPlatform string) *gin.Engine {
+		r := gin.New()
+		r.Use(func(c *gin.Context) {
+			c.Set(string(ContextKeyAPIKey), &service.APIKey{
+				Group: &service.Group{Platform: groupPlatform},
+			})
+			c.Next()
+		})
+		r.Use(ForceAntigravityGroupOnV1Beta())
+		r.POST("/v1beta/models/*modelAction", func(c *gin.Context) {
+			platform, ok := GetForcePlatformFromContext(c)
+			ctxPlatform, _ := c.Request.Context().Value(ctxkey.ForcePlatform).(string)
+			c.JSON(http.StatusOK, gin.H{
+				"forced":   ok,
+				"platform": platform,
+				"ctx":      ctxPlatform,
+			})
+		})
+		return r
+	}
+
+	post := func(r *gin.Engine) *httptest.ResponseRecorder {
+		w := httptest.NewRecorder()
+		req := httptest.NewRequest(http.MethodPost, "/v1beta/models/gemini-3.8-flash-tiered:generateContent", nil)
+		r.ServeHTTP(w, req)
+		return w
+	}
+
+	t.Run("antigravity group forces platform", func(t *testing.T) {
+		w := post(newRouter(service.PlatformAntigravity))
+		require.Equal(t, http.StatusOK, w.Code)
+		require.JSONEq(t, `{"forced":true,"platform":"antigravity","ctx":"antigravity"}`, w.Body.String())
+	})
+
+	t.Run("gemini group does not force platform", func(t *testing.T) {
+		w := post(newRouter(service.PlatformGemini))
+		require.Equal(t, http.StatusOK, w.Code)
+		require.JSONEq(t, `{"forced":false,"platform":"","ctx":""}`, w.Body.String())
+	})
+
+	t.Run("existing force platform is kept", func(t *testing.T) {
+		r := gin.New()
+		r.Use(ForcePlatform(service.PlatformGemini))
+		r.Use(func(c *gin.Context) {
+			c.Set(string(ContextKeyAPIKey), &service.APIKey{
+				Group: &service.Group{Platform: service.PlatformAntigravity},
+			})
+			c.Next()
+		})
+		r.Use(ForceAntigravityGroupOnV1Beta())
+		r.POST("/v1beta/models/*modelAction", func(c *gin.Context) {
+			platform, _ := GetForcePlatformFromContext(c)
+			c.JSON(http.StatusOK, gin.H{"platform": platform})
+		})
+		w := post(r)
+		require.Equal(t, http.StatusOK, w.Code)
+		require.JSONEq(t, `{"platform":"gemini"}`, w.Body.String())
+	})
+}
+
 func TestAuthSubjectHelpers_RoundTrip(t *testing.T) {
 	c := &gin.Context{}
 	c.Set(string(ContextKeyUser), AuthSubject{UserID: 1, Concurrency: 2})

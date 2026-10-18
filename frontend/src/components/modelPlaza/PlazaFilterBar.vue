@@ -1,8 +1,10 @@
 <template>
-  <div class="space-y-3">
-    <!-- 一级:平台 -->
-    <div class="flex items-start gap-2">
-      <span class="w-10 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
+  <div class="rounded-2xl border border-gray-100 bg-white p-4 shadow-card dark:border-dark-700/50 dark:bg-dark-800/50 sm:p-5">
+    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <div class="min-w-0 flex-1 space-y-3">
+    <!-- 平台筛选暂时隐藏，分组和倍率仍可用。需要恢复时把 showPlatform 改为 true。 -->
+    <div v-if="showPlatform" class="flex items-start gap-2">
+      <span class="shrink-0 whitespace-nowrap pt-2 pr-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
         {{ t('modelPlaza.filters.platformLabel') }}
       </span>
       <div class="flex flex-wrap items-center gap-2">
@@ -24,7 +26,7 @@
 
     <!-- 二级:分组(按所属平台着色,当前组合下无结果的置灰) -->
     <div class="flex items-start gap-2">
-      <span class="w-10 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
+      <span class="shrink-0 whitespace-nowrap pt-2 pr-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
         {{ t('modelPlaza.filters.groupLabel') }}
       </span>
       <div class="flex flex-wrap items-center gap-2">
@@ -40,20 +42,21 @@
           v-for="g in groups"
           :key="`group-${g.id}`"
           type="button"
-          class="rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale"
+          class="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 disabled:grayscale"
           :class="groupId === g.id ? 'chip-tinted-active' : 'chip-tinted'"
           :style="{ '--chip-accent': platformAccentColor(g.platform) }"
           :disabled="!groupEnabled(g)"
           @click="$emit('update:groupId', g.id)"
         >
-          {{ g.name }}
+          <span>{{ g.name }}</span>
+          <span class="font-mono text-xs opacity-80">{{ formatRate(g.rate) }}</span>
         </button>
       </div>
     </div>
 
     <!-- 三级:倍率(当前组合下不存在的置灰) -->
     <div class="flex items-start gap-2">
-      <span class="w-10 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
+      <span class="shrink-0 whitespace-nowrap pt-2 pr-1 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
         {{ t('modelPlaza.filters.rateLabel') }}
       </span>
       <div class="flex flex-wrap items-center gap-2">
@@ -79,32 +82,35 @@
       </div>
     </div>
 
-    <!-- 四级:模型名搜索(纯前端过滤) -->
-    <div class="flex flex-wrap items-start gap-2">
-      <span class="w-10 shrink-0 pt-2 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-dark-500">
-        {{ t('modelPlaza.filters.modelLabel') }}
-      </span>
-      <div class="relative w-full sm:w-72">
-        <Icon
-          name="search"
-          size="sm"
-          class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-500"
-        />
-        <input
-          :value="search"
-          type="text"
-          :placeholder="t('modelPlaza.filters.searchPlaceholder')"
-          class="input rounded-lg py-1.5 pl-9 pr-9"
-          @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
-        />
-        <button
-          v-if="search"
-          type="button"
-          class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 dark:text-dark-500 dark:hover:text-gray-300"
-          @click="$emit('update:search', '')"
-        >
-          <Icon name="x" size="xs" class="h-3.5 w-3.5" />
-        </button>
+      </div>
+
+      <!-- 搜索与当前模型数量 -->
+      <div class="flex w-full shrink-0 flex-col gap-2 sm:w-72 lg:items-end">
+        <div class="relative w-full">
+          <Icon
+            name="search"
+            size="sm"
+            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 dark:text-dark-500"
+          />
+          <input
+            :value="search"
+            type="text"
+            :placeholder="t('modelPlaza.filters.searchPlaceholder')"
+            class="input w-full rounded-lg py-1.5 pl-9 pr-9"
+            @input="$emit('update:search', ($event.target as HTMLInputElement).value)"
+          />
+          <button
+            v-if="search"
+            type="button"
+            class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600 dark:text-dark-500 dark:hover:text-gray-300"
+            @click="$emit('update:search', '')"
+          >
+            <Icon name="x" size="xs" class="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 dark:text-dark-500">
+          {{ t('modelPlaza.filters.resultCount', { count: modelCount }) }}
+        </p>
       </div>
     </div>
   </div>
@@ -116,6 +122,7 @@ import Icon from '@/components/icons/Icon.vue'
 import PlatformIcon from '@/components/common/PlatformIcon.vue'
 import { platformAccentColor } from '@/utils/platformColors'
 import type { GroupPlatform } from '@/types'
+import { formatRate } from './plazaPricing'
 
 const props = defineProps<{
   /** 数据中出现的平台(去重排序后)。 */
@@ -129,6 +136,8 @@ const props = defineProps<{
   rate: number | 'all'
   /** 模型名搜索词(纯前端过滤)。 */
   search: string
+  /** 当前筛选下的模型卡片数量。 */
+  modelCount: number
 }>()
 
 defineEmits<{
@@ -139,6 +148,9 @@ defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+/** 平台这一行暂时不展示。 */
+const showPlatform = false
 
 /**
  * 三个维度互为约束(faceted):某选项可点 ⟺ 在「其他两维」当前选择下仍有分组命中。

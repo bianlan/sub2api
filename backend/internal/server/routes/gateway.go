@@ -343,6 +343,8 @@ func RegisterGatewayRoutes(
 	gemini.Use(middleware.APIKeyAuthWithSubscriptionGoogle(apiKeyService, subscriptionService, cfg))
 	gemini.Use(compositeGeminiTarget)
 	gemini.Use(requireGroupGoogle)
+	// Antigravity 分组走标准 /v1beta 时，按专用入口同样强制平台。
+	gemini.Use(middleware.ForceAntigravityGroupOnV1Beta())
 	{
 		gemini.GET("/models", h.Gateway.GeminiV1BetaListModels)
 		gemini.GET("/models/:model", h.Gateway.GeminiV1BetaGetModel)

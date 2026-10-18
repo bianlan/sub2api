@@ -42,15 +42,21 @@
         :group-id="selectedGroupId"
         :rate="selectedRate"
         :search="searchQuery"
+        :model-count="cards.length"
         @update:platform="selectedPlatform = $event"
         @update:group-id="selectedGroupId = $event"
         @update:rate="selectedRate = $event"
         @update:search="searchQuery = $event"
       />
 
-      <!-- 分组分节的模型清单(默认按生效倍率升序) -->
-      <div v-if="filteredGroups.length > 0" class="space-y-5">
-        <PlazaGroupSection v-for="g in filteredGroups" :key="g.id" :group="g" />
+      <!-- 同一模型一张卡，价格取当前筛选下倍率最低的分组 -->
+      <div v-if="cards.length > 0" class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <PlazaModelCard
+          v-for="card in cards"
+          :key="card.key"
+          :card="card"
+          @open="openKey = card.key"
+        />
       </div>
       <div
         v-else
@@ -58,6 +64,7 @@
       >
         {{ searchActive ? t('modelPlaza.noSearchResult') : t('modelPlaza.empty') }}
       </div>
+      <PlazaModelDrawer :card="openCard" @close="openKey = null" />
     </template>
   </div>
 </template>
@@ -69,7 +76,9 @@ import { marked } from 'marked'
 import DOMPurify from 'dompurify'
 import Icon from '@/components/icons/Icon.vue'
 import PlazaFilterBar from './PlazaFilterBar.vue'
-import PlazaGroupSection from './PlazaGroupSection.vue'
+import PlazaModelCard from './PlazaModelCard.vue'
+import PlazaModelDrawer from './PlazaModelDrawer.vue'
+import { collectModelCards } from './plazaPricing'
 import type { ModelPlazaGroup, ModelPlazaResponse } from '@/api/modelPlaza'
 import { useAuthStore } from '@/stores/auth'
 
@@ -89,6 +98,7 @@ const selectedPlatform = ref<string>('all')
 const selectedGroupId = ref<number | 'all'>('all')
 const selectedRate = ref<number | 'all'>('all')
 const searchQuery = ref('')
+const openKey = ref<string | null>(null)
 
 const searchActive = computed(() => searchQuery.value.trim() !== '')
 
@@ -150,6 +160,15 @@ const filteredGroups = computed(() => {
   return [...groups].sort(
     (a, b) => effectiveRate(a) - effectiveRate(b) || a.name.localeCompare(b.name)
   )
+})
+
+const cards = computed(() => collectModelCards(filteredGroups.value))
+const openCard = computed(() => cards.value.find((card) => card.key === openKey.value) ?? null)
+
+watch(cards, (list) => {
+  if (openKey.value && !list.some((card) => card.key === openKey.value)) {
+    openKey.value = null
+  }
 })
 </script>
 

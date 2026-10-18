@@ -157,3 +157,6 @@ output/
 .vite/
 # 本地闭源插件开发目录及构建产物不进入 Sub2API 仓库
 /plugins/
+
+# WPS / Office 打开文档时产生的临时锁文件（如 ~$中转站价格.xlsx）
+~$*
