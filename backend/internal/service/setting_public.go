@@ -762,8 +762,8 @@ func safeRawJSONArray(raw string) json.RawMessage {
 	return json.RawMessage("[]")
 }
 
-// GetFrameSrcOrigins returns deduplicated http(s) origins from home_content URL,
-// purchase_subscription_url, and all custom_menu_items URLs. Used by the router layer for CSP frame-src injection.
+// GetFrameSrcOrigins 收集需要写入 CSP frame-src 的外链来源。
+// 包含首页、购买订阅、自定义菜单，以及兑换页嵌入的支付店铺链接。
 func (s *SettingService) GetFrameSrcOrigins(ctx context.Context) ([]string, error) {
 	settings, err := s.GetPublicSettings(ctx)
 	if err != nil {
@@ -794,6 +794,9 @@ func (s *SettingService) GetFrameSrcOrigins(ctx context.Context) ([]string, erro
 	for _, item := range parseCustomMenuItemURLs(settings.CustomMenuItems) {
 		addOrigin(item)
 	}
+
+	// 兑换页店铺。公开设置里已经滤成合法 https，空值不会写入 frame-src。
+	addOrigin(settings.PaymentPageURL)
 
 	return origins, nil
 }
