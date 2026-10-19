@@ -5,6 +5,7 @@ import {
   billingRate,
   buildPriceLines,
   buildTimePriceGroups,
+  groupPriceTiers,
   cardPrices,
   collectModelCards,
   formatRate,
@@ -93,6 +94,57 @@ describe('plazaPricing 实付价', () => {
     expect(buildPriceLines(model, 0.5)).toEqual([
       { prefix: '', kind: 'call', amount: '$0.02', unit: 'request' }
     ])
+  })
+
+  it('按档位前缀分组，空前缀单独成一组', () => {
+    const flat = groupPriceTiers(buildPriceLines(tokenModel(), 1))
+    expect(flat).toHaveLength(1)
+    expect(flat[0].prefix).toBe('')
+    expect(flat[0].lines.map((line) => line.kind)).toEqual(['input', 'output', 'cacheWrite', 'cacheRead'])
+
+    const model = tokenModel({
+      pricing: {
+        billing_mode: 'token',
+        input_price: 3e-6,
+        output_price: 1.5e-5,
+        cache_write_price: null,
+        cache_read_price: null,
+        image_input_price: null,
+        image_output_price: null,
+        per_request_price: null,
+        intervals: [
+          {
+            min_tokens: 0,
+            max_tokens: 272000,
+            tier_label: '',
+            input_price: 2e-6,
+            output_price: 1e-5,
+            cache_write_price: 2.5e-6,
+            cache_read_price: 2e-7,
+            per_request_price: null
+          },
+          {
+            min_tokens: 272000,
+            max_tokens: null,
+            tier_label: '',
+            input_price: 4e-6,
+            output_price: 1.5e-5,
+            cache_write_price: 5e-6,
+            cache_read_price: 4e-7,
+            per_request_price: null
+          }
+        ]
+      }
+    })
+    const tiers = groupPriceTiers(buildPriceLines(model, 1))
+    expect(tiers.map((tier) => tier.prefix)).toEqual(['≤272K', '>272K'])
+    expect(tiers[0].lines.map((line) => `${line.kind}:${line.amount}`)).toEqual([
+      'input:$2.00',
+      'output:$10.00',
+      'cacheWrite:$2.50',
+      'cacheRead:$0.20'
+    ])
+    expect(tiers[1].lines.map((line) => line.kind)).toEqual(['input', 'output', 'cacheWrite', 'cacheRead'])
   })
 
   it('按量阶梯按档折算，并生成区间标签', () => {

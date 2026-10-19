@@ -115,90 +115,112 @@
                   <p class="text-xs text-gray-400 dark:text-dark-500">{{ t('modelPlaza.drawer.priceSubtitle') }}</p>
                 </div>
               </div>
-              <div class="mt-3 overflow-x-auto">
-                <table class="w-full min-w-[520px] text-sm">
-                  <thead>
-                    <tr class="border-b border-gray-100 text-left text-xs text-gray-400 dark:border-dark-700 dark:text-dark-500">
-                      <th class="py-2 pr-3 font-medium">{{ t('modelPlaza.drawer.colGroup') }}</th>
-                      <th class="py-2 pr-3 font-medium">{{ t('modelPlaza.drawer.colBilling') }}</th>
-                      <th class="py-2 font-medium">{{ t('modelPlaza.drawer.colSummary') }}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr
-                      v-for="offer in card.offers"
-                      :key="offer.group.id"
-                      class="border-b border-gray-50 align-top last:border-b-0 dark:border-dark-800"
+              <div class="mt-3 space-y-3">
+                <article
+                  v-for="offer in card.offers"
+                  :key="offer.group.id"
+                  class="rounded-xl border border-gray-100 px-3 py-2.5 dark:border-dark-700"
+                >
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <div class="flex min-w-0 flex-wrap items-center gap-1.5">
+                      <span class="text-sm font-medium text-gray-900 dark:text-white">{{ offer.group.name }}</span>
+                      <span
+                        v-if="hasCustomRate(offer.group)"
+                        class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-400 line-through dark:bg-dark-700 dark:text-dark-500"
+                      >
+                        {{ formatRate(offer.group.rate_multiplier) }}
+                      </span>
+                      <span class="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-dark-700 dark:text-gray-200">
+                        {{ t('modelPlaza.drawer.rateBadge', { rate: formatRate(offer.rate) }) }}
+                      </span>
+                      <span
+                        v-if="offer.group.is_exclusive"
+                        class="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-600 dark:bg-purple-900/20 dark:text-purple-300"
+                      >
+                        {{ t('modelPlaza.badges.exclusive') }}
+                      </span>
+                      <span
+                        v-if="offer.group.subscription_type === 'subscription'"
+                        class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600 dark:bg-violet-900/20 dark:text-violet-300"
+                      >
+                        {{ t('modelPlaza.badges.subscription') }}
+                      </span>
+                      <span class="rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-600 dark:bg-violet-900/20 dark:text-violet-300">
+                        {{ t(billingLabelKey(offer.model)) }}
+                      </span>
+                    </div>
+                    <span v-if="offerUnit(offer)" class="shrink-0 text-xs text-gray-400 dark:text-dark-500">
+                      {{ offerUnit(offer) }}
+                    </span>
+                  </div>
+
+                  <p v-if="!priceTiers(offer).length" class="mt-2 text-sm text-gray-400 dark:text-dark-500">
+                    {{ t('modelPlaza.detail.noPricing') }}
+                  </p>
+                  <div
+                    v-else
+                    class="mt-2 grid items-baseline gap-x-4 gap-y-1 overflow-x-auto border-t border-gray-100 pt-2 dark:border-dark-700"
+                    :style="{ gridTemplateColumns: priceGridColumns(priceTiers(offer)) }"
+                  >
+                    <template v-for="(tier, index) in priceTiers(offer)" :key="(tier.prefix || 'base') + index">
+                      <span
+                        v-if="hasTierPrefix(priceTiers(offer))"
+                        class="text-xs text-gray-400 dark:text-dark-500"
+                      >
+                        {{ tier.prefix }}
+                      </span>
+                      <span
+                        v-for="kind in tierKinds(priceTiers(offer))"
+                        :key="(tier.prefix || 'base') + kind"
+                        class="whitespace-nowrap text-sm"
+                      >
+                        <template v-if="tierLine(tier, kind)">
+                          <span class="mr-1 text-xs text-gray-400 dark:text-dark-500">{{ shortLabel(kind) }}</span>
+                          <span class="font-medium tabular-nums text-gray-900 dark:text-white">{{ tierLine(tier, kind)?.amount }}</span>
+                        </template>
+                      </span>
+                    </template>
+                  </div>
+
+                  <div
+                    v-for="period in timeGroups(offer)"
+                    :key="period.window"
+                    class="mt-2 rounded-lg bg-gray-50 px-2 py-1.5 text-xs text-gray-600 dark:bg-dark-800 dark:text-dark-300"
+                  >
+                    <p class="font-medium">
+                      <span v-if="period.weekdays">{{ t('modelPlaza.table.timePricingWeekdays') }} </span>
+                      {{ period.window }} · {{ formatRate(period.periodRate) }}
+                    </p>
+                    <div
+                      class="mt-1 grid items-baseline gap-x-3 gap-y-1"
+                      :style="{ gridTemplateColumns: priceGridColumns(groupPriceTiers(period.lines)) }"
                     >
-                      <td class="py-3 pr-3">
-                        <div class="font-medium text-gray-900 dark:text-white">{{ offer.group.name }}</div>
-                        <div class="mt-1 flex flex-wrap gap-1">
-                          <span
-                            v-if="hasCustomRate(offer.group)"
-                            class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-400 line-through dark:bg-dark-700 dark:text-dark-500"
-                          >
-                            {{ formatRate(offer.group.rate_multiplier) }}
-                          </span>
-                          <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] text-gray-600 dark:bg-dark-700 dark:text-dark-200">
-                            {{ t('modelPlaza.drawer.rateBadge', { rate: formatRate(offer.rate) }) }}
-                          </span>
-                          <span
-                            v-if="offer.group.is_exclusive"
-                            class="rounded bg-purple-50 px-1.5 py-0.5 text-[10px] text-purple-600 dark:bg-purple-900/20 dark:text-purple-300"
-                          >
-                            {{ t('modelPlaza.badges.exclusive') }}
-                          </span>
-                          <span
-                            v-if="offer.group.subscription_type === 'subscription'"
-                            class="rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-600 dark:bg-violet-900/20 dark:text-violet-300"
-                          >
-                            {{ t('modelPlaza.badges.subscription') }}
-                          </span>
-                        </div>
-                      </td>
-                      <td class="py-3 pr-3">
-                        <span class="rounded-full bg-violet-50 px-2 py-0.5 text-xs text-violet-600 dark:bg-violet-900/20 dark:text-violet-300">
-                          {{ t(billingLabelKey(offer.model)) }}
+                      <template v-for="(tier, index) in groupPriceTiers(period.lines)" :key="(tier.prefix || 'base') + index">
+                        <span v-if="hasTierPrefix(groupPriceTiers(period.lines))" class="font-medium text-gray-500 dark:text-dark-400">
+                          {{ tier.prefix }}
                         </span>
-                      </td>
-                      <td class="py-3">
-                        <div v-if="priceLines(offer).length" class="space-y-1">
-                          <p v-for="(line, index) in priceLines(offer)" :key="index" class="text-gray-800 dark:text-dark-100">
-                            <span v-if="line.prefix" class="mr-1 text-gray-400 dark:text-dark-500">{{ line.prefix }}</span>
-                            <strong class="font-medium">{{ lineLabel(line.kind) }} {{ line.amount }}</strong>
-                            <span class="ml-1 text-xs text-gray-400 dark:text-dark-500">{{ unitLabel(line.unit) }}</span>
-                          </p>
-                        </div>
-                        <p v-else class="text-gray-400 dark:text-dark-500">{{ t('modelPlaza.detail.noPricing') }}</p>
-                        <div
-                          v-for="period in timeGroups(offer)"
-                          :key="period.window"
-                          class="mt-2 rounded-lg bg-gray-50 px-2 py-1.5 text-xs text-gray-600 dark:bg-dark-800 dark:text-dark-300"
-                        >
-                          <p class="font-medium">
-                            <span v-if="period.weekdays">{{ t('modelPlaza.table.timePricingWeekdays') }} </span>
-                            {{ period.window }} · {{ formatRate(period.periodRate) }}
-                          </p>
-                          <p v-for="(line, index) in period.lines" :key="index">
-                            <span v-if="line.prefix">{{ line.prefix }} </span>{{ lineLabel(line.kind) }} {{ line.amount }}
-                          </p>
-                        </div>
-                        <p v-if="peakText(offer.group)" class="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
-                          {{ peakText(offer.group) }}
-                        </p>
-                        <p v-if="longContextDisabled(offer.group, offer.model)" class="mt-1.5 text-xs text-gray-500 dark:text-dark-400">
-                          {{ t('modelPlaza.drawer.longContextDisabled') }}
-                        </p>
-                        <p
-                          v-else-if="hasTokenLadder(offer.model)"
-                          class="mt-1.5 text-xs text-gray-500 dark:text-dark-400"
-                        >
-                          {{ offer.model.long_context_basis === 'marginal' ? t('modelPlaza.table.tierHintMarginal') : t('modelPlaza.drawer.longContext') }}
-                        </p>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+                        <span v-for="kind in tierKinds(groupPriceTiers(period.lines))" :key="(tier.prefix || 'base') + kind" class="whitespace-nowrap">
+                          <template v-if="tierLine(tier, kind)">
+                            <span class="mr-1 text-gray-400 dark:text-dark-500">{{ shortLabel(kind) }}</span>
+                            <span class="font-mono font-semibold">{{ tierLine(tier, kind)?.amount }}</span>
+                          </template>
+                        </span>
+                      </template>
+                    </div>
+                  </div>
+                  <p v-if="peakText(offer.group)" class="mt-1.5 text-xs text-amber-600 dark:text-amber-400">
+                    {{ peakText(offer.group) }}
+                  </p>
+                  <p v-if="longContextDisabled(offer.group, offer.model)" class="mt-1.5 text-xs text-gray-500 dark:text-dark-400">
+                    {{ t('modelPlaza.drawer.longContextDisabled') }}
+                  </p>
+                  <p
+                    v-else-if="hasTokenLadder(offer.model)"
+                    class="mt-1.5 text-xs text-gray-500 dark:text-dark-400"
+                  >
+                    {{ offer.model.long_context_basis === 'marginal' ? t('modelPlaza.table.tierHintMarginal') : t('modelPlaza.drawer.longContext') }}
+                  </p>
+                </article>
               </div>
             </section>
           </div>
@@ -277,10 +299,12 @@ import {
   buildPriceLines,
   buildTimePriceGroups,
   formatRate,
+  groupPriceTiers,
   longContextDisabled,
   type PlazaModelCard,
   type PlazaModelOffer,
   type PriceKind,
+  type PriceTier,
   type PriceUnit
 } from './plazaPricing'
 
@@ -336,8 +360,38 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
 })
 
-function priceLines(offer: PlazaModelOffer) {
-  return buildPriceLines(offer.model, offer.rate)
+/** 横排时列的固定顺序，两档的金额才能上下对齐。 */
+const PRICE_KIND_ORDER: PriceKind[] = ['input', 'output', 'cacheWrite', 'cacheWrite1h', 'cacheRead', 'call']
+
+function priceTiers(offer: PlazaModelOffer): PriceTier[] {
+  return groupPriceTiers(buildPriceLines(offer.model, offer.rate))
+}
+
+/** 这一组档位里实际出现的价格列。 */
+function tierKinds(tiers: PriceTier[]): PriceKind[] {
+  const present = new Set(tiers.flatMap((tier) => tier.lines.map((line) => line.kind)))
+  return PRICE_KIND_ORDER.filter((kind) => present.has(kind))
+}
+
+function tierLine(tier: PriceTier, kind: PriceKind) {
+  return tier.lines.find((line) => line.kind === kind)
+}
+
+function hasTierPrefix(tiers: PriceTier[]): boolean {
+  return tiers.some((tier) => tier.prefix !== '')
+}
+
+/** 有档位时第一列留给档位名，其余列按价格种类排开。 */
+function priceGridColumns(tiers: PriceTier[]): string {
+  const count = tierKinds(tiers).length
+  if (count === 0) return 'auto'
+  const prices = `repeat(${count}, max-content)`
+  return hasTierPrefix(tiers) ? `max-content ${prices}` : prices
+}
+
+function offerUnit(offer: PlazaModelOffer): string {
+  const line = buildPriceLines(offer.model, offer.rate)[0]
+  return line ? unitLabel(line.unit) : ''
 }
 
 function timeGroups(offer: PlazaModelOffer) {
@@ -361,12 +415,12 @@ function peakText(group: ModelPlazaGroup): string {
   return t('modelPlaza.detail.peakNote', { window: windowText, multiplier: group.peak_rate_multiplier })
 }
 
-function lineLabel(kind: PriceKind): string {
-  if (kind === 'input') return t('modelPlaza.drawer.inputPrice')
-  if (kind === 'output') return t('modelPlaza.drawer.outputPrice')
-  if (kind === 'cacheWrite') return t('modelPlaza.drawer.cacheWritePrice')
-  if (kind === 'cacheWrite1h') return t('modelPlaza.drawer.cacheWrite1hPrice')
-  if (kind === 'cacheRead') return t('modelPlaza.drawer.cacheReadPrice')
+function shortLabel(kind: PriceKind): string {
+  if (kind === 'input') return t('modelPlaza.table.input')
+  if (kind === 'output') return t('modelPlaza.drawer.outputShort')
+  if (kind === 'cacheWrite') return t('modelPlaza.table.cacheWrite')
+  if (kind === 'cacheWrite1h') return t('modelPlaza.drawer.cacheWrite1hShort')
+  if (kind === 'cacheRead') return t('modelPlaza.table.cacheRead')
   return t('modelPlaza.drawer.callPrice')
 }
 

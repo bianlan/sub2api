@@ -25,6 +25,12 @@ export interface PriceLine {
   unit: PriceUnit
 }
 
+/** 同一档位的价格。prefix 为空表示没有阶梯。 */
+export interface PriceTier {
+  prefix: string
+  lines: PriceLine[]
+}
+
 /** 卡片上的紧凑价格。缓存只保留一行。 */
 export interface CardPrice {
   kind: 'input' | 'output' | 'cache' | 'call'
@@ -153,6 +159,23 @@ export function collectModelCards(groups: ModelPlazaGroup[]): PlazaModelCard[] {
   return [...map.values()].sort(
     (a, b) => a.name.localeCompare(b.name) || a.platform.localeCompare(b.platform)
   )
+}
+
+/**
+ * 按档位前缀把价格行收成横排用的档。
+ * 同一档的输入、补全、缓存是连续生成的，所以相同 prefix 归到一组，并保持原顺序。
+ */
+export function groupPriceTiers(lines: PriceLine[]): PriceTier[] {
+  const tiers: PriceTier[] = []
+  for (const line of lines) {
+    const last = tiers[tiers.length - 1]
+    if (last && last.prefix === line.prefix) {
+      last.lines.push(line)
+    } else {
+      tiers.push({ prefix: line.prefix, lines: [line] })
+    }
+  }
+  return tiers
 }
 
 /** 标准时段的价格行。有阶梯时按档列出，不使用 image_output_price 充当按次价。 */

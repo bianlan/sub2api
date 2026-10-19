@@ -892,26 +892,14 @@ function closeEmptyPlatformSections() {
 
 function toggleGroupInSection(sectionIdx: number, groupId: number) {
   const section = form.platforms[sectionIdx]
-  const removing = section.group_ids.includes(groupId)
-  // 复合分组不属于某一个平台。只改当前页的话，保存时会从其它平台页把这个分组合并回来。
-  if (groupPlatformOf(groupId) === 'composite') {
-    for (const platformSection of form.platforms) {
-      const idx = platformSection.group_ids.indexOf(groupId)
-      if (removing) {
-        if (idx >= 0) platformSection.group_ids.splice(idx, 1)
-      } else if (platformSection.enabled && idx < 0) {
-        platformSection.group_ids.push(groupId)
-      }
-    }
-    if (removing) closeEmptyPlatformSections()
-    return
-  }
   const idx = section.group_ids.indexOf(groupId)
   if (idx >= 0) {
     section.group_ids.splice(idx, 1)
-  } else {
-    section.group_ids.push(groupId)
+    // 取消复合分组只改当前页。当前页因此没有分组、也没有定价等内容时，关掉这个空页。
+    if (groupPlatformOf(groupId) === 'composite') closeEmptyPlatformSections()
+    return
   }
+  section.group_ids.push(groupId)
 }
 
 // ── Pricing helpers ──
@@ -1285,7 +1273,7 @@ function apiToForm(channel: Channel): PlatformSection[] {
 
     const groupIds = (channel.group_ids || []).filter(gid => {
       const groupPlatform = groupPlatformMap.get(gid)
-      // 复合分组挂在已打开的平台页上，方便查看；取消时会从所有页一起去掉
+      // 复合分组挂在已打开的平台页上，方便查看；取消勾选只影响当前页
       return groupPlatform === platform || groupPlatform === 'composite'
     })
     const mapping = (channel.model_mapping || {})[platform] || {}

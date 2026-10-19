@@ -67,6 +67,8 @@ export default {
       duplicateModels: '模型「{0}」在多个定价条目中重复',
       modelConflict: "模型模式 '{model1}' 和 '{model2}' 冲突：匹配范围重叠。模型名称按大小写不敏感匹配，已有条目已覆盖其所有大小写变体，无需重复添加。",
       mappingConflict: "模型映射源 '{model1}' 和 '{model2}' 冲突：匹配范围重叠。源模式按大小写不敏感匹配，已有条目已覆盖其所有大小写变体。",
+      noGroupsSelected: '{platform} 未选择关联分组',
+      emptyModelsInPricing: '{platform} 的定价里还有未填写模型的条目',
       intervalValidation: {
         negativeMin: '区间 #{index}：最小 token 数（{value}）不能为负数',
         maxPositive: '区间 #{index}：最大 token 数（{value}）必须大于 0',
@@ -114,7 +116,7 @@ export default {
         descriptionPlaceholder: '可选描述',
         status: '状态',
         groups: '关联分组',
-        compositeGroupHint: '复合分组是整条渠道共用的。在任意平台取消勾选并保存，就会从渠道移除，不会再自动挂回来。',
+        compositeGroupHint: '复合分组会显示在每个已打开的平台页。取消当前页的勾选不会连带取消其它平台。',
         noGroupsAvailable: '暂无可用分组',
         inOtherChannel: '已属于「{name}」',
         modelPricing: '模型定价',
