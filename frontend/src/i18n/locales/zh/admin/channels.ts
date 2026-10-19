@@ -114,6 +114,7 @@ export default {
         descriptionPlaceholder: '可选描述',
         status: '状态',
         groups: '关联分组',
+        compositeGroupHint: '复合分组是整条渠道共用的。在任意平台取消勾选并保存，就会从渠道移除，不会再自动挂回来。',
         noGroupsAvailable: '暂无可用分组',
         inOtherChannel: '已属于「{name}」',
         modelPricing: '模型定价',

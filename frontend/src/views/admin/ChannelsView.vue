@@ -322,6 +322,12 @@
                   </label>
                 </div>
               </div>
+              <p
+                v-if="getGroupsForPlatform(section.platform).some(group => group.platform === 'composite')"
+                class="mt-1 text-[11px] text-gray-400"
+              >
+                {{ t('admin.channels.form.compositeGroupHint') }}
+              </p>
             </div>
 
             <!-- Web Search Emulation (Anthropic only, hidden when global disabled) -->
@@ -781,7 +787,8 @@ function addPlatformSection(platform: GroupPlatform) {
     platform,
     enabled: true,
     collapsed: false,
-    group_ids: [],
+    // 新开的平台页沿用渠道上已勾选的复合分组，避免各页勾选状态不一致
+    group_ids: selectedCompositeGroupIds(),
     model_mapping: {},
     model_pricing: [],
     web_search_emulation: false,
@@ -795,7 +802,10 @@ function togglePlatform(platform: GroupPlatform) {
   const section = form.platforms.find(s => s.platform === platform)
   if (section) {
     section.enabled = !section.enabled
-    if (!section.enabled && activeTab.value === platform) {
+    if (section.enabled) {
+      // 重新打开平台时，带上渠道里已经勾选的复合分组
+      syncCompositeGroupsInto(section)
+    } else if (activeTab.value === platform) {
       activeTab.value = 'basic'
     }
   } else {
@@ -843,8 +853,59 @@ const deleteConfirmMessage = computed(() => {
   )
 })
 
+function groupPlatformOf(groupId: number): string | undefined {
+  return allGroups.value.find(group => group.id === groupId)?.platform
+}
+
+// 复合分组在各平台页是同一条渠道关联，这里取出当前已经勾选的复合分组。
+function selectedCompositeGroupIds(): number[] {
+  const ids = new Set<number>()
+  for (const section of form.platforms) {
+    for (const groupId of section.group_ids) {
+      if (groupPlatformOf(groupId) === 'composite') ids.add(groupId)
+    }
+  }
+  return [...ids]
+}
+
+function syncCompositeGroupsInto(section: PlatformSection) {
+  for (const groupId of selectedCompositeGroupIds()) {
+    if (!section.group_ids.includes(groupId)) section.group_ids.push(groupId)
+  }
+}
+
+// 平台页没有分组，也没有定价、映射或账号统计规则时，关掉它，避免保存被“未选分组”拦住。
+function sectionHasOwnContent(section: PlatformSection): boolean {
+  return section.model_pricing.length > 0
+    || Object.keys(section.model_mapping).length > 0
+    || section.account_stats_pricing_rules.length > 0
+}
+
+function closeEmptyPlatformSections() {
+  for (const section of form.platforms) {
+    if (!section.enabled) continue
+    if (section.group_ids.length > 0 || sectionHasOwnContent(section)) continue
+    section.enabled = false
+    if (activeTab.value === section.platform) activeTab.value = 'basic'
+  }
+}
+
 function toggleGroupInSection(sectionIdx: number, groupId: number) {
   const section = form.platforms[sectionIdx]
+  const removing = section.group_ids.includes(groupId)
+  // 复合分组不属于某一个平台。只改当前页的话，保存时会从其它平台页把这个分组合并回来。
+  if (groupPlatformOf(groupId) === 'composite') {
+    for (const platformSection of form.platforms) {
+      const idx = platformSection.group_ids.indexOf(groupId)
+      if (removing) {
+        if (idx >= 0) platformSection.group_ids.splice(idx, 1)
+      } else if (platformSection.enabled && idx < 0) {
+        platformSection.group_ids.push(groupId)
+      }
+    }
+    if (removing) closeEmptyPlatformSections()
+    return
+  }
   const idx = section.group_ids.indexOf(groupId)
   if (idx >= 0) {
     section.group_ids.splice(idx, 1)
@@ -1195,11 +1256,13 @@ function apiToForm(channel: Channel): PlatformSection[] {
   }
 
   // Determine which platforms are active (from groups + pricing + mapping)
+  // 复合分组不负责把所有平台页都打开。只按具体平台分组、定价和映射决定要显示哪些平台。
   const activePlatforms = new Set<GroupPlatform>()
+  let hasCompositeGroup = false
   for (const gid of channel.group_ids || []) {
     const p = groupPlatformMap.get(gid)
     if (p === 'composite') {
-      compositePlatforms.forEach(platform => activePlatforms.add(platform))
+      hasCompositeGroup = true
     } else if (p) {
       activePlatforms.add(p)
     }
@@ -1210,6 +1273,10 @@ function apiToForm(channel: Channel): PlatformSection[] {
   for (const p of Object.keys(channel.model_mapping || {})) {
     if (platformOrder.includes(p as GroupPlatform)) activePlatforms.add(p as GroupPlatform)
   }
+  // 只有复合分组、还没有任何平台内容时，留一个 Anthropic 页用来显示和取消关联
+  if (activePlatforms.size === 0 && hasCompositeGroup) {
+    activePlatforms.add('anthropic')
+  }
 
   // Build sections in platform order
   const sections: PlatformSection[] = []
@@ -1218,8 +1285,8 @@ function apiToForm(channel: Channel): PlatformSection[] {
 
     const groupIds = (channel.group_ids || []).filter(gid => {
       const groupPlatform = groupPlatformMap.get(gid)
-      return groupPlatform === platform ||
-        (groupPlatform === 'composite' && compositePlatforms.includes(platform))
+      // 复合分组挂在已打开的平台页上，方便查看；取消时会从所有页一起去掉
+      return groupPlatform === platform || groupPlatform === 'composite'
     })
     const mapping = (channel.model_mapping || {})[platform] || {}
     const pricing = (channel.model_pricing || [])
@@ -1410,7 +1477,12 @@ function distributeRulesToPlatforms(apiRules: AccountStatsPricingRule[]) {
     const targetPlatform = platforms.size >= 1 ? [...platforms][0] : null
     if (!targetPlatform) continue
 
-    const section = form.platforms.find(s => s.platform === targetPlatform)
+    let section = form.platforms.find(s => s.platform === targetPlatform)
+    if (!section) {
+      // 规则落在尚未打开的平台时补一页，避免下次保存把这条规则丢掉
+      addPlatformSection(targetPlatform)
+      section = form.platforms.find(s => s.platform === targetPlatform)
+    }
     if (!section) continue
 
     const formRule: FormPricingRule = {
