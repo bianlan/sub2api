@@ -266,6 +266,32 @@ func (s *AffiliateService) GetAffiliateDetail(ctx context.Context, userID int64)
 	}, nil
 }
 
+// AffiliateCodeUsable 判断推广码能否当作注册通行证。
+// 邀请返利关闭、格式不对、或查不到对应用户时都算无效，不能静默放行。
+func (s *AffiliateService) AffiliateCodeUsable(ctx context.Context, rawCode string) (bool, error) {
+	code := strings.ToUpper(strings.TrimSpace(rawCode))
+	if code == "" || s == nil || s.repo == nil {
+		return false, nil
+	}
+	if !s.IsEnabled(ctx) {
+		return false, nil
+	}
+	if !isValidAffiliateCodeFormat(code) {
+		return false, nil
+	}
+	summary, err := s.repo.GetAffiliateByCode(ctx, code)
+	if err != nil {
+		if errors.Is(err, ErrAffiliateProfileNotFound) {
+			return false, nil
+		}
+		return false, err
+	}
+	if summary == nil || summary.UserID <= 0 {
+		return false, nil
+	}
+	return true, nil
+}
+
 func (s *AffiliateService) BindInviterByCode(ctx context.Context, userID int64, rawCode string) error {
 	code := strings.ToUpper(strings.TrimSpace(rawCode))
 	if code == "" {

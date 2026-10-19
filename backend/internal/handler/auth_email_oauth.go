@@ -248,6 +248,18 @@ func (h *AuthHandler) emailOAuthShouldCreatePendingRegistration(ctx context.Cont
 	return false, nil
 }
 
+// registrationStillNeedsRedeemCode 邀请码注册开启，且当前推广码不能作为通行证时，仍要求兑换邀请码。
+func (h *AuthHandler) registrationStillNeedsRedeemCode(ctx context.Context, affiliateCode string) bool {
+	if h == nil || h.settingSvc == nil || !h.settingSvc.IsInvitationCodeEnabled(ctx) {
+		return false
+	}
+	if h.authService == nil {
+		return true
+	}
+	usable, err := h.authService.AffiliateCodeUsable(ctx, affiliateCode)
+	return err != nil || !usable
+}
+
 func (h *AuthHandler) emailOAuthAffiliateCode(c *gin.Context) string {
 	if c == nil {
 		return ""
@@ -300,7 +312,7 @@ func (h *AuthHandler) createEmailOAuthRegistrationPendingSession(
 		}
 	}
 
-	invitationRequired := h != nil && h.settingSvc != nil && h.settingSvc.IsInvitationCodeEnabled(c.Request.Context())
+	invitationRequired := h.registrationStillNeedsRedeemCode(c.Request.Context(), affiliateCode)
 	pendingError := "registration_completion_required"
 	choiceReason := "registration_completion_required"
 	if invitationRequired {
@@ -377,6 +389,7 @@ func (h *AuthHandler) completeEmailOAuthRegistration(c *gin.Context, provider st
 		strings.TrimSpace(session.ResolvedEmail),
 		req.Password,
 		strings.TrimSpace(req.InvitationCode),
+		affiliateCode,
 		strings.TrimSpace(session.ProviderType),
 	)
 	if err != nil {

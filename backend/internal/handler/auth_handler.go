@@ -554,9 +554,13 @@ func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
 		return
 	}
 
-	// 验证邀请码
+	// 先认兑换邀请码；不是兑换码时，再认有效推广码。
 	redeemCode, err := h.redeemService.GetByCode(c.Request.Context(), req.Code)
 	if err != nil {
+		if h.affiliateCodeCanRegister(c, req.Code) {
+			response.Success(c, ValidateInvitationCodeResponse{Valid: true})
+			return
+		}
 		response.Success(c, ValidateInvitationCodeResponse{
 			Valid:     false,
 			ErrorCode: "INVITATION_CODE_NOT_FOUND",
@@ -564,8 +568,11 @@ func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
 		return
 	}
 
-	// 检查类型和状态
 	if redeemCode.Type != service.RedeemTypeInvitation {
+		if h.affiliateCodeCanRegister(c, req.Code) {
+			response.Success(c, ValidateInvitationCodeResponse{Valid: true})
+			return
+		}
 		response.Success(c, ValidateInvitationCodeResponse{
 			Valid:     false,
 			ErrorCode: "INVITATION_CODE_INVALID",
@@ -584,6 +591,15 @@ func (h *AuthHandler) ValidateInvitationCode(c *gin.Context) {
 	response.Success(c, ValidateInvitationCodeResponse{
 		Valid: true,
 	})
+}
+
+// affiliateCodeCanRegister 推广码能否代替兑换邀请码通过注册校验。
+func (h *AuthHandler) affiliateCodeCanRegister(c *gin.Context, code string) bool {
+	if h == nil || h.authService == nil || c == nil {
+		return false
+	}
+	usable, err := h.authService.AffiliateCodeUsable(c.Request.Context(), code)
+	return err == nil && usable
 }
 
 // ForgotPasswordRequest 忘记密码请求

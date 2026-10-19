@@ -154,6 +154,123 @@ func (s *AuthService) SetAliyunCaptchaService(aliyunCaptchaService *AliyunCaptch
 	s.aliyunCaptchaService = aliyunCaptchaService
 }
 
+// registrationInviteGate 是邀请码注册开启时的放行结果。
+// 兑换邀请码和推广码任一有效即可；推广码仍只负责绑定返利。
+type registrationInviteGate struct {
+	redeem          *RedeemCode
+	affiliateCode   string
+	affiliateIsPass bool
+}
+
+// resolveRegistrationInvite 在开启邀请码注册时，未使用的兑换邀请码或有效推广码任一即可。
+// 未开启时不拦截，只把传入的推广码原样返回，供后续尽力绑定。
+func (s *AuthService) resolveRegistrationInvite(ctx context.Context, invitationCode, affiliateCode string, lookup func(context.Context, string) (*RedeemCode, error)) (registrationInviteGate, error) {
+	invitationCode = strings.TrimSpace(invitationCode)
+	affiliateCode = strings.TrimSpace(affiliateCode)
+	gate := registrationInviteGate{affiliateCode: affiliateCode}
+	if s == nil || s.settingService == nil || !s.settingService.IsInvitationCodeEnabled(ctx) {
+		return gate, nil
+	}
+
+	redeem, err := s.findUsableInvitationRedeem(ctx, invitationCode, lookup)
+	if err != nil {
+		return gate, err
+	}
+	if redeem != nil {
+		gate.redeem = redeem
+		return gate, nil
+	}
+
+	// 兑换码不成立时，再看推广码：显式 aff_code，或用户把推广码填进邀请码框。
+	passCode := affiliateCode
+	if passCode == "" {
+		passCode = invitationCode
+	}
+	if passCode == "" {
+		return gate, ErrInvitationCodeRequired
+	}
+	usable, err := s.AffiliateCodeUsable(ctx, passCode)
+	if err != nil {
+		return gate, err
+	}
+	if !usable {
+		return gate, ErrInvitationCodeInvalid
+	}
+	gate.affiliateCode = passCode
+	gate.affiliateIsPass = true
+	return gate, nil
+}
+
+// findUsableInvitationRedeem 只认未使用的兑换邀请码。查不到或类型不对时返回 nil，交给推广码继续判断。
+func (s *AuthService) findUsableInvitationRedeem(ctx context.Context, code string, lookup func(context.Context, string) (*RedeemCode, error)) (*RedeemCode, error) {
+	code = strings.TrimSpace(code)
+	if code == "" {
+		return nil, nil
+	}
+	if lookup == nil {
+		return nil, ErrServiceUnavailable
+	}
+	redeem, err := lookup(ctx, code)
+	if err != nil {
+		if errors.Is(err, ErrRedeemCodeNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if redeem == nil || redeem.Type != RedeemTypeInvitation || !redeem.CanUse() {
+		return nil, nil
+	}
+	return redeem, nil
+}
+
+func (s *AuthService) lookupRedeemByRepo(ctx context.Context, code string) (*RedeemCode, error) {
+	if s == nil || s.redeemRepo == nil {
+		return nil, ErrServiceUnavailable
+	}
+	return s.redeemRepo.GetByCode(ctx, code)
+}
+
+// AffiliateCodeUsable 供注册校验和 OAuth 判断推广码能否代替兑换邀请码。
+func (s *AuthService) AffiliateCodeUsable(ctx context.Context, code string) (bool, error) {
+	if s == nil || s.affiliateService == nil {
+		return false, nil
+	}
+	return s.affiliateService.AffiliateCodeUsable(ctx, code)
+}
+
+// bindRegistrationAffiliate 绑定邀请人。
+// mustSucceed 为真表示推广码本身是通行证，绑定失败必须拒绝注册。
+func (s *AuthService) bindRegistrationAffiliate(ctx context.Context, userID int64, code string, mustSucceed bool) error {
+	code = strings.TrimSpace(code)
+	if s == nil || s.affiliateService == nil || userID <= 0 {
+		if mustSucceed {
+			return ErrInvitationCodeInvalid
+		}
+		return nil
+	}
+	if mustSucceed && (code == "" || !s.affiliateService.IsEnabled(ctx)) {
+		return ErrInvitationCodeInvalid
+	}
+	// 无论是否绑定邀请人，新用户都要有自己的推广档案。
+	if _, err := s.affiliateService.EnsureUserAffiliate(ctx, userID); err != nil {
+		if mustSucceed {
+			return err
+		}
+		logger.LegacyPrintf("service.auth", "[Auth] Failed to initialize affiliate profile for user %d: %v", userID, err)
+		return nil
+	}
+	if code == "" {
+		return nil
+	}
+	if err := s.affiliateService.BindInviterByCode(ctx, userID, code); err != nil {
+		if mustSucceed {
+			return ErrInvitationCodeInvalid
+		}
+		logger.LegacyPrintf("service.auth", "[Auth] Failed to bind affiliate inviter for user %d: %v", userID, err)
+	}
+	return nil
+}
+
 // Register 用户注册，返回token和用户
 func (s *AuthService) Register(ctx context.Context, email, password string) (string, *User, error) {
 	return s.RegisterWithVerification(ctx, email, password, "", "", "", "")
@@ -170,24 +287,13 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	if isReservedEmail(email) {
 		return "", nil, ErrEmailReserved
 	}
-	// 检查是否需要邀请码
-	var invitationRedeemCode *RedeemCode
-	if s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) {
-		if invitationCode == "" {
-			return "", nil, ErrInvitationCodeRequired
+	// 邀请码注册开启时，兑换邀请码或有效推广码任一即可。
+	inviteGate, err := s.resolveRegistrationInvite(ctx, invitationCode, affiliateCode, s.lookupRedeemByRepo)
+	if err != nil {
+		if errors.Is(err, ErrInvitationCodeInvalid) {
+			logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation or affiliate code: invitation=%s affiliate=%s", invitationCode, affiliateCode)
 		}
-		// 验证邀请码
-		redeemCode, err := s.redeemRepo.GetByCode(ctx, invitationCode)
-		if err != nil {
-			logger.LegacyPrintf("service.auth", "[Auth] Invalid invitation code: %s, error: %v", invitationCode, err)
-			return "", nil, ErrInvitationCodeInvalid
-		}
-		// 检查类型和状态
-		if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
-			logger.LegacyPrintf("service.auth", "[Auth] Invitation code invalid: type=%s, status=%s", redeemCode.Type, redeemCode.Status)
-			return "", nil, ErrInvitationCodeInvalid
-		}
-		invitationRedeemCode = redeemCode
+		return "", nil, err
 	}
 
 	// 检查是否需要邮件验证
@@ -245,7 +351,7 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 		Status:       StatusActive,
 	}
 
-	if err := s.createUserAndClaimInvitation(ctx, user, invitationRedeemCode); err != nil {
+	if err := s.createUserAndClaimInvitation(ctx, user, inviteGate.redeem); err != nil {
 		// 优先检查邮箱冲突错误（竞态条件下可能发生）
 		switch {
 		case errors.Is(err, ErrEmailExists):
@@ -263,16 +369,8 @@ func (s *AuthService) RegisterWithVerification(ctx context.Context, email, passw
 	s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
 	// snapshot user × platform quota（fail-open）
 	_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
-	if s.affiliateService != nil {
-		if _, err := s.affiliateService.EnsureUserAffiliate(ctx, user.ID); err != nil {
-			logger.LegacyPrintf("service.auth", "[Auth] Failed to initialize affiliate profile for user %d: %v", user.ID, err)
-		}
-		if code := strings.TrimSpace(affiliateCode); code != "" {
-			if err := s.affiliateService.BindInviterByCode(ctx, user.ID, code); err != nil {
-				// 邀请返利码绑定失败不影响注册，只记录日志
-				logger.LegacyPrintf("service.auth", "[Auth] Failed to bind affiliate inviter for user %d: %v", user.ID, err)
-			}
-		}
+	if err := s.bindRegistrationAffiliate(ctx, user.ID, inviteGate.affiliateCode, inviteGate.affiliateIsPass); err != nil {
+		return "", nil, err
 	}
 
 	// 邀请码占用已由 createUserAndClaimInvitation 在“用户创建 + 邀请码占用”的
@@ -720,21 +818,16 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 				return nil, nil, ErrRegDisabled
 			}
 
-			// 检查是否需要邀请码
-			var invitationRedeemCode *RedeemCode
-			if s.settingService != nil && s.settingService.IsInvitationCodeEnabled(ctx) {
-				if invitationCode == "" {
+			// 邀请码注册开启时，兑换邀请码或有效推广码任一即可。
+			inviteGate, gateErr := s.resolveRegistrationInvite(ctx, invitationCode, affiliateCode, s.lookupRedeemByRepo)
+			if gateErr != nil {
+				if errors.Is(gateErr, ErrInvitationCodeRequired) {
 					return nil, nil, ErrOAuthInvitationRequired
 				}
-				redeemCode, err := s.redeemRepo.GetByCode(ctx, invitationCode)
-				if err != nil {
-					return nil, nil, ErrInvitationCodeInvalid
-				}
-				if redeemCode.Type != RedeemTypeInvitation || !redeemCode.CanUse() {
-					return nil, nil, ErrInvitationCodeInvalid
-				}
-				invitationRedeemCode = redeemCode
+				return nil, nil, gateErr
 			}
+			invitationRedeemCode := inviteGate.redeem
+			affiliateCode = inviteGate.affiliateCode
 
 			randomPassword, err := randomHexString(32)
 			if err != nil {
@@ -803,7 +896,9 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
 					// snapshot user × platform quota（fail-open）
 					_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
-					s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
+					if err := s.bindRegistrationAffiliate(ctx, user.ID, affiliateCode, inviteGate.affiliateIsPass); err != nil {
+						return nil, nil, err
+					}
 				}
 			} else {
 				if err := s.userRepo.Create(ctx, newUser); err != nil {
@@ -824,7 +919,9 @@ func (s *AuthService) loginOrRegisterOAuthWithTokenPair(ctx context.Context, ema
 					s.assignSubscriptions(ctx, user.ID, grantPlan.Subscriptions, "auto assigned by signup defaults")
 					// snapshot user × platform quota（fail-open）
 					_ = s.snapshotPlatformQuotaDefaults(ctx, user.ID, &grantPlan)
-					s.bindOAuthAffiliate(ctx, user.ID, affiliateCode)
+					if err := s.bindRegistrationAffiliate(ctx, user.ID, affiliateCode, inviteGate.affiliateIsPass); err != nil {
+						return nil, nil, err
+					}
 					if invitationRedeemCode != nil {
 						if err := s.redeemRepo.Use(ctx, invitationRedeemCode.ID, user.ID); err != nil {
 							return nil, nil, ErrInvitationCodeInvalid

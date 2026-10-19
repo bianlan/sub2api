@@ -1,18 +1,24 @@
 import { DriveStep } from 'driver.js'
 
+/** 国际化函数类型，支持传参插值（如站点名称） */
+type TranslateFn = (key: string, params?: Record<string, unknown>) => string
+
 /**
  * 管理员完整引导流程
  * 交互式引导：指引用户实际操作
  * @param t 国际化函数
  * @param isSimpleMode 是否为简易模式（简易模式下会过滤分组相关步骤）
+ * @param siteName 系统设置中的站点名称
  */
-export const getAdminSteps = (t: (key: string) => string, isSimpleMode = false): DriveStep[] => {
+export const getAdminSteps = (t: TranslateFn, isSimpleMode = false, siteName = 'Sub2API'): DriveStep[] => {
+  // 欢迎语等文案需要注入站点名称
+  const siteParams = { siteName }
   const allSteps: DriveStep[] = [
   // ========== 欢迎介绍 ==========
   {
     popover: {
-      title: t('onboarding.admin.welcome.title'),
-      description: t('onboarding.admin.welcome.description'),
+      title: t('onboarding.admin.welcome.title', siteParams),
+      description: t('onboarding.admin.welcome.description', siteParams),
       align: 'center',
       nextBtnText: t('onboarding.admin.welcome.nextBtn'),
       prevBtnText: t('onboarding.admin.welcome.prevBtn')
@@ -245,12 +251,17 @@ export const getAdminSteps = (t: (key: string) => string, isSimpleMode = false):
 
 /**
  * 普通用户引导流程
+ * @param t 国际化函数
+ * @param siteName 系统设置中的站点名称
  */
-export const getUserSteps = (t: (key: string) => string): DriveStep[] => [
+export const getUserSteps = (t: TranslateFn, siteName = 'Sub2API'): DriveStep[] => {
+  // 欢迎语需要注入站点名称
+  const siteParams = { siteName }
+  return [
   {
     popover: {
-      title: t('onboarding.user.welcome.title'),
-      description: t('onboarding.user.welcome.description'),
+      title: t('onboarding.user.welcome.title', siteParams),
+      description: t('onboarding.user.welcome.description', siteParams),
       align: 'center',
       nextBtnText: t('onboarding.user.welcome.nextBtn'),
       prevBtnText: t('onboarding.user.welcome.prevBtn')
@@ -307,3 +318,4 @@ export const getUserSteps = (t: (key: string) => string): DriveStep[] => [
     }
   }
 ]
+}

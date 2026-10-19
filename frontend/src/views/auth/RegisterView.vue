@@ -510,6 +510,10 @@ function syncAffiliateReferralCode(): string {
   const code = resolveAffiliateReferralCode(route.query.aff, route.query.aff_code)
   if (code) {
     formData.aff_code = code
+    // 邀请码注册开启时只显示这一个输入框，推广链接也填进这里。
+    if (!formData.invitation_code.trim()) {
+      formData.invitation_code = code
+    }
   }
   return code
 }
@@ -558,6 +562,9 @@ onMounted(async () => {
       }
     }
     syncAffiliateReferralCode()
+    if (invitationCodeEnabled.value && formData.invitation_code.trim()) {
+      await validateInvitationCodeDebounced(formData.invitation_code.trim())
+    }
   } catch (error) {
     console.error('Failed to load public settings:', error)
     loginAgreementEnabled.value = false
@@ -995,7 +1002,11 @@ async function handleRegister(): Promise<void> {
   isLoading.value = true
 
   try {
-    const affCode = formData.aff_code.trim() || loadAffiliateReferralCode()
+    // 邀请码注册开启时，输入框里可能是兑换码，也可能是推广码，两个字段都提交。
+    let affCode = formData.aff_code.trim() || loadAffiliateReferralCode()
+    if (invitationCodeEnabled.value && formData.invitation_code.trim()) {
+      affCode = formData.invitation_code.trim()
+    }
     if (affCode) {
       formData.aff_code = affCode
     }

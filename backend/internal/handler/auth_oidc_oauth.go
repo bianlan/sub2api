@@ -1240,7 +1240,8 @@ func (h *AuthHandler) tryOIDCVerifiedEmailFastPath(
 	if h.isForceEmailOnThirdPartySignup(ctx) {
 		return false
 	}
-	if h.settingSvc.IsInvitationCodeEnabled(ctx) {
+	affiliateCode := pendingSessionStringValue(upstreamClaims, "aff_code")
+	if h.registrationStillNeedsRedeemCode(ctx, affiliateCode) {
 		return false
 	}
 	if err := h.ensureBackendModeAllowsNewUserLogin(ctx); err != nil {
@@ -1275,7 +1276,7 @@ func (h *AuthHandler) tryOIDCVerifiedEmailFastPath(
 		ctx,
 		input,
 		"",
-		"",
+		affiliateCode,
 		readOAuthPromoCode(c),
 	)
 	if err != nil {
