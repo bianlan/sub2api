@@ -7,7 +7,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: sub2api:260907
+    image: sub2api:261019
     container_name: sub2api
     restart: unless-stopped
     security_opt:

@@ -39,6 +39,7 @@ docker run -d --name sub2api-redis --restart unless-stopped --network sub2api-ne
 ## 5. 构建并启动 Sub2API
 
 ```powershell
+# 检查编排文件是否合法
 docker compose --env-file .env -f docker-compose.standalone.yml config --quiet
 docker compose --env-file .env -f docker-compose.standalone.yml up -d --build
 # 删除容器
